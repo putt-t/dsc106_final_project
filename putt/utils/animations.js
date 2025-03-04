@@ -9,7 +9,7 @@ class BreathingAnimations {
         const {
             width = 300,
             height = 300,
-            duration = 3000,
+            duration = 5000,
             color = "#3498db",
             maxRadius = 120
         } = options;
