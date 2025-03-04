@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Breathing Patterns: An Interactive Exploration</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Breathing Patterns: An Interactive Exploration</h1>
+    <p>Explore how respiratory mechanics differ across demographics and health conditions</p>
+  </header>
+
+  <section id="introduction">
+    <h2>Understanding Respiratory Mechanics</h2>
+    <p>The way we breathe reveals a lot about our respiratory health. This interactive exploration visualizes breathing patterns from 80 participants with various health backgrounds.</p>
+    <div id="breathing-animation" class="viz-container"></div>
+  </section>
+
+  <section id="demographics">
+    <h2>Participant Demographics</h2>
+    <p>Explore the demographic breakdown of our 80 participants.</p>
+    <div id="demographics-viz" class="viz-container"></div>
+  </section>
+
+  <section id="breathing-patterns">
+    <h2>Breathing Patterns Across Groups</h2>
+    <div class="controls">
+      <div class="filter-group">
+        <label for="group-select">Compare by:</label>
+        <select id="group-select">
+          <option value="sex">Sex</option>
+          <option value="asthma">Asthma Status</option>
+          <option value="smoking">Smoking History</option>
+          <option value="vaping">Vaping History</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="metric-select">Metric:</label>
+        <select id="metric-select">
+          <option value="pressure">Pressure [cmH2O]</option>
+          <option value="flow">Flow [L/s]</option>
+          <option value="v_tidal">Tidal Volume [L]</option>
+          <option value="chest">Chest Movement [mm]</option>
+          <option value="abd">Abdominal Movement [mm]</option>
+          <option value="aeration">Global Aeration</option>
+        </select>
+      </div>
+    </div>
+    <div id="patterns-viz" class="viz-container"></div>
+  </section>
+
+  <section id="individual-explorer">
+    <h2>Individual Explorer</h2>
+    <p>Select a participant to explore their breathing pattern in detail.</p>
+    <div class="controls">
+      <div class="filter-group">
+        <label for="subject-select">Subject:</label>
+        <select id="subject-select"></select>
+      </div>
+    </div>
+    <div id="individual-viz" class="viz-container"></div>
+  </section>
+
+  <section id="insights">
+    <h2>Key Insights</h2>
+    <div id="insights-viz" class="viz-container"></div>
+  </section>
+
+  <footer>
+    <p>Created with D3.js | Data from respiratory mechanics study</p>
+  </footer>
+
+  <script src="utils/dataLoader.js"></script>
+  <script src="utils/animations.js"></script>
+  <script src="components/breathingViz.js"></script>
+  <script src="components/demographicViz.js"></script>
+  <script src="components/comparisonViz.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
