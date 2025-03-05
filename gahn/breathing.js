@@ -40,24 +40,17 @@ document.addEventListener('DOMContentLoaded', function () {
         .range([0, innerWidth]);
 
     const y = d3.scaleLinear()
-        .domain([0, 2])  // Typical range for tidal volume [L], adjust as needed
+        .domain([0, 10])
         .range([innerHeight, 0]);
 
     // Add axes
     const xAxis = g.append("g")
         .attr("class", "x-axis")
-        .attr("transform", `translate(0, ${innerHeight / 2})`);
+        .attr("transform", `translate(0, ${innerHeight})`);
 
     const yAxis = g.append("g")
         .attr("class", "y-axis");
 
-    // Add center line
-    g.append("line")
-        .attr("class", "center-line")
-        .attr("x1", 0)
-        .attr("y1", innerHeight / 2)
-        .attr("x2", innerWidth)
-        .attr("y2", innerHeight / 2);
 
     // Add axis labels
     g.append("text")
@@ -89,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .attr("x1", 0)
         .attr("y1", y(0))
         .attr("x2", 0)
-        .attr("y2", y(2));
+        .attr("y2", y(10));
 
     gradient.append("stop")
         .attr("offset", "0%")
@@ -447,7 +440,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         data: data.map(d => ({
                             time: +d["Time [s]"],
                             flow: +d["Flow [L/s]"],
-                            volume: +d["V_tidal [L]"]
+                            volume: Math.max(0, +d["V_tidal [L]"])
                         })).filter(d => d.time <= 300) // Only get data <= 300 seconds
                     };
                 })
@@ -467,7 +460,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Update axes
             xAxis.call(d3.axisBottom(x).ticks(10));
-            yAxis.call(d3.axisLeft(y).ticks(10));
+            yAxis.call(d3.axisLeft(y).ticks(5));
 
             // Animation loop
             function animate() {
@@ -504,8 +497,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 currentVolumeElement.textContent = "Multiple";
                 breathingRateElement.textContent = "Multiple";
 
+
                 // Advance time based on animation speed
-                currentTime += 0.05 * animationSpeed;
+                currentTime += 0.02 * animationSpeed;
 
                 // Update x domain
                 x.domain([currentTime, currentTime + timeWindow]);
@@ -544,7 +538,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 time: +d["Time [s]"],
                 flow: +d["Flow [L/s]"],
                 pressure: +d["Pressure [cmH2O]"],
-                volume: +d["V_tidal [L]"],
+                volume: Math.max(0, +d["V_tidal [L]"]),  // Use Math.max to prevent negative values
                 chest: +d["Chest [mm]"],
                 abdomen: +d["Abd [mm]"]
             }));
@@ -605,35 +599,45 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     currentVolumeElement.textContent = `${latestPoint.volume.toFixed(2)} L`;
 
-                    // Still detect breath cycles using flow data
-                    if (latestPoint.flow > 0 && !isInhaling) {
+                    if (latestPoint.flow > 0.2 && !isInhaling) {  // Use threshold to avoid noise
                         isInhaling = true;
 
                         // If this isn't the first breath, calculate breathing rate
                         if (lastBreathTime > 0) {
                             const timeBetweenBreaths = latestPoint.time - lastBreathTime;
-                            const breathsPerMinute = 60 / timeBetweenBreaths;
 
-                            // Add to array for averaging (keep last 5 breaths)
-                            breathingRateArray.push(breathsPerMinute);
-                            if (breathingRateArray.length > 5) {
-                                breathingRateArray.shift();
+                            // Only count reasonable breath intervals (between 0.5 and 10 seconds)
+                            // This gives a range of 6 to 120 breaths per minute
+                            if (timeBetweenBreaths > 0.5 && timeBetweenBreaths < 10) {
+                                const breathsPerMinute = 60 / timeBetweenBreaths;
+
+                                // Add to array for averaging (keep last 5 breaths)
+                                breathingRateArray.push(breathsPerMinute);
+                                if (breathingRateArray.length > 5) {
+                                    breathingRateArray.shift();
+                                }
+
+                                // Calculate average breathing rate
+                                const avgBreathingRate = breathingRateArray.reduce((a, b) => a + b, 0) / breathingRateArray.length;
+
+                                // Apply a sanity check to the displayed rate
+                                if (avgBreathingRate > 6 && avgBreathingRate < 40) {
+                                    breathingRateElement.textContent = `${avgBreathingRate.toFixed(1)} breaths/min`;
+                                } else {
+                                    breathingRateElement.textContent = "-- breaths/min";
+                                }
                             }
-
-                            // Calculate average breathing rate
-                            const avgBreathingRate = breathingRateArray.reduce((a, b) => a + b, 0) / breathingRateArray.length;
-                            breathingRateElement.textContent = `${avgBreathingRate.toFixed(1)} breaths/min`;
                         }
 
                         lastBreathTime = latestPoint.time;
                         breathCount++;
-                    } else if (latestPoint.flow < 0 && isInhaling) {
+                    } else if (latestPoint.flow < -0.2 && isInhaling) {  // Use threshold to avoid noise
                         isInhaling = false;
                     }
                 }
 
                 // Advance time based on animation speed
-                currentTime += 0.05 * animationSpeed;
+                currentTime += 0.02 * animationSpeed;
 
                 // Update x domain
                 x.domain([currentTime, currentTime + timeWindow]);
