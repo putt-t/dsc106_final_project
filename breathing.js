@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const path = g.append("path")
         .attr("class", "flow-line")
         .attr("fill", "none")
-        .attr("stroke", "url(#flow-gradient)")
+        .attr("stroke", "#3498db")
         .attr("stroke-width", 3);
 
     // Create group paths for "All" mode
@@ -547,7 +547,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // Reset stats display in multi-group mode
                 currentFlowElement.textContent = "Average";
+                currentFlowElement.style.color = '#2c3e50';
                 currentVolumeElement.textContent = "Average";
+                currentVolumeElement.style.color = '#2c3e50';
                 breathingRateElement.textContent = "Average";
 
                 // Advance time based on animation speed
@@ -647,11 +649,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     // Update stats
                     currentFlowElement.textContent = `${latestPoint.flow.toFixed(2)} L/s`;
-                    currentFlowElement.style.color = latestPoint.flow > 0 ? groupColors.asthma : groupColors.normal;
+                    currentFlowElement.style.color = latestPoint.flow > 0 ? groupColors.normal : groupColors.asthma;
 
                     currentVolumeElement.textContent = `${latestPoint.volume.toFixed(2)} L`;
 
-                    if (latestPoint.flow > 0.2 && !isInhaling) {  // Use threshold to avoid noise
+                    if (latestPoint.flow > 0 && !isInhaling) {  // Use threshold to avoid noise
                         isInhaling = true;
 
                         // If this isn't the first breath, calculate breathing rate
@@ -683,7 +685,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                         lastBreathTime = latestPoint.time;
                         breathCount++;
-                    } else if (latestPoint.flow < -0.2 && isInhaling) {  // Use threshold to avoid noise
+                    } else if (latestPoint.flow < 0 && isInhaling) {  // Use threshold to avoid noise
                         isInhaling = false;
                     }
                 }

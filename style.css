@@ -246,6 +246,14 @@ footer {
     /* box-shadow: 0 0 0 2px var(--secondary-color); */
 }
 
+.demographics-controls button.active {
+    outline: none;
+    background-color: #7ca1cc;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    /* box-shadow: 0 0 0 2px var(--secondary-color); */
+}
+
 #demographics-chart {
     margin: 20px auto;
     max-width: 800px;
@@ -386,7 +394,7 @@ footer {
 }
 
 #current-volume {
-    color: var(--accent-color);
+    color: var(--secondary-color);
 }
 
 #breathing-rate {

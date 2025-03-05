@@ -234,10 +234,90 @@ d3.csv("subject-info.csv").then((data) => {
     // Initialize with gender view
     updateChart("gender");
 
+    const buttons = ['view-gender', 'view-asthma', 'view-smoking', 'view-vaping', 'view-age'];
+
     // Set up button event listeners
-    d3.select("#view-gender").on("click", () => updateChart("gender"));
-    d3.select("#view-asthma").on("click", () => updateChart("asthma"));
-    d3.select("#view-smoking").on("click", () => updateChart("smoking"));
-    d3.select("#view-vaping").on("click", () => updateChart("vaping"));
-    d3.select("#view-age").on("click", () => updateChart("age"));
+    d3.select("#view-gender").on("click", () => {
+        updateChart("gender");
+        let gender_button = document.getElementById("view-gender");
+
+        if (gender_button.classList.contains("active") == false) {
+            for (let i = 0; i < buttons.length; i++) {
+                let button = document.getElementById(buttons[i]);
+                if (button.classList.contains("active") == true) {
+                    button.classList.remove("active");
+                }
+            }
+            gender_button.classList.add("active");
+        } else {
+            gender_button.classList.remove("active");
+        }
+    });
+    d3.select("#view-asthma").on("click", () => {
+        updateChart("asthma");
+        let asthma_button = document.getElementById("view-asthma");
+    
+        if (asthma_button.classList.contains("active") == false) {
+            for (let i = 0; i < buttons.length; i++) {
+                let button = document.getElementById(buttons[i]);
+                if (button.classList.contains("active") == true) {
+                    button.classList.remove("active");
+                }
+            }
+            asthma_button.classList.add("active");
+        } else {
+            asthma_button.classList.remove("active");
+        }
+    });
+    d3.select("#view-smoking").on("click", () => {
+        updateChart("smoking");
+    
+        let smoking_button = document.getElementById("view-smoking");
+
+        if (smoking_button.classList.contains("active") == false) {
+            for (let i = 0; i < buttons.length; i++) {
+                let button = document.getElementById(buttons[i]);
+                if (button.classList.contains("active") == true) {
+                    button.classList.remove("active");
+                }
+            }
+            smoking_button.classList.add("active");
+        } else {
+            smoking_button.classList.remove("active");
+        }
+    });
+    d3.select("#view-vaping").on("click", () => {
+        updateChart("vaping");
+
+        let vaping_button = document.getElementById("view-vaping");
+
+        if (vaping_button.classList.contains("active") == false) {
+            for (let i = 0; i < buttons.length; i++) {
+                let button = document.getElementById(buttons[i]);
+                if (button.classList.contains("active") == true) {
+                    button.classList.remove("active");
+                }
+            }
+            vaping_button.classList.add("active");
+        } else {
+            vaping_button.classList.remove("active");
+        }
+    });
+    d3.select("#view-age").on("click", () => {
+        updateChart("age");
+    
+        let age_button = document.getElementById("view-age");
+
+        if (age_button.classList.contains("active") == false) {
+            for (let i = 0; i < buttons.length; i++) {
+                let button = document.getElementById(buttons[i]);
+                if (button.classList.contains("active") == true) {
+                    button.classList.remove("active");
+                }
+            }
+            age_button.classList.add("active");
+        } else {
+            age_button.classList.remove("active");
+        }
+    });
 });
