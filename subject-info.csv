@@ -1,4 +1,4 @@
-﻿Subject Number,Sex (M/F),Height [cm],Weight [kg],Age [years],Asthma (Y/N),Medication,Dosage Frequency,History of Smoking (Y/N),Current Smoker (Y/N),How long since you quit smoking,Smoking Frequency,Time as a smoker ,History of Vaping (Y/N),Current Vaper (Y/N),How long since you quit vaping,Vaping Frequency,Time as a vaper,Trial Classification ,Chest Depth [mm],Chest Width [mm],,,
+﻿Subject Number,Sex (M/F),Height [cm],Weight [kg],Age [years],Asthma (Y/N),Medication,Dosage Frequency,History of Smoking (Y/N),Current Smoker (Y/N),How long since you quit smoking,Smoking Frequency,Time as a smoker ,History of Vaping (Y/N),Current Vaper (Y/N),How long since you quit vaping,Vaping Frequency,Time as a vaper,Trial Classification,Chest Depth [mm],Chest Width [mm],,,
 1,F,165,59,22,N,N/A,N/A,N,N/A,N/A,N/A,N/A,N,N/A,N/A,N/A,N/A,Normal Female,20,28,,,
 2,F,172,96,23,Y,Vannair,3-4 times daily,N,N/A,N/A,N/A,N/A,Y,Y,N/A,4 times daily,2 years,Asthmatic Female,25,33,,,
 3,F,169,66,24,N,N/A,N/A,N,N/A,N/A,N/A,N/A,N,N/A,N/A,N/A,N/A,Normal Female,22,30,,,
