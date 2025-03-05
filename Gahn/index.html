@@ -72,6 +72,61 @@
             <div id="demographics-chart"></div>
         </section>
 
+        <section class="section-breathing">
+            <h2>Respiratory Flow Visualization</h2>
+            <p>
+                This visualization shows breathing patterns across different participant groups.
+                Positive values (above the center line) represent inhalation, while negative values represent
+                exhalation.
+            </p>
+            <div class="breathing-controls">
+                <div class="participant-selector">
+                    <label for="participant-select">Select Participant: </label>
+                    <select id="participant-select">
+                        <!-- Options will be populated by JavaScript -->
+                    </select>
+                </div>
+
+                <div class="group-selector">
+                    <label>Compare Groups: </label>
+                    <button class="group-btn" data-group="all">All</button>
+                    <button class="group-btn active" data-group="normal">Normal</button>
+                    <button class="group-btn" data-group="asthma">Asthma</button>
+                    <button class="group-btn" data-group="smoker">Smoker</button>
+                    <button class="group-btn" data-group="vaper">Vaper</button>
+                </div>
+
+                <div class="speed-control">
+                    <label for="speed-slider">Animation Speed: </label>
+                    <input type="range" id="speed-slider" min="0.5" max="5" step="0.5" value="1">
+                    <span id="speed-value">1x</span>
+                </div>
+            </div>
+
+            <div class="viz-container" id="breathing-container">
+                <div class="main-viz" id="breathing-viz"></div>
+            </div>
+
+            <div class="stats-panel">
+                <div class="stat-box">
+                    <h3>Current Flow</h3>
+                    <div id="current-flow">0.00 L/s</div>
+                </div>
+                <div class="stat-box">
+                    <h3>Current Volume</h3>
+                    <div id="current-volume">0.00 L</div>
+                </div>
+                <div class="stat-box">
+                    <h3>Breathing Rate</h3>
+                    <div id="breathing-rate">0 breaths/min</div>
+                </div>
+            </div>
+
+            <div class="breathing-legend">
+                <!-- Legend will be populated by JavaScript -->
+            </div>
+        </section>
+
         <section class="section-visualization">
             <h2>Expiratory Occlusions Across Groups</h2>
             <p>
@@ -112,8 +167,11 @@
             </p>
         </div>
     </footer>
+
+    <!-- Scripts -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="demographics.js"></script>
+    <script src="breathing.js"></script>
 </body>
 
 </html>

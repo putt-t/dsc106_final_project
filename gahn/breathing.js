@@ -43,7 +43,6 @@ document.addEventListener('DOMContentLoaded', function () {
         .domain([0, 2])  // Typical range for tidal volume [L], adjust as needed
         .range([innerHeight, 0]);
 
-
     // Add axes
     const xAxis = g.append("g")
         .attr("class", "x-axis")
@@ -76,10 +75,10 @@ document.addEventListener('DOMContentLoaded', function () {
         .attr("text-anchor", "middle")
         .text("Tidal Volume (L)");
 
-    // Create line generator
+    // Create line generator for tidal volume
     const line = d3.line()
         .x(d => x(d.time))
-        .y(d => y(d.volume)) // Changed from d.flow
+        .y(d => y(d.volume))
         .curve(d3.curveBasis);
 
     // Create gradient for the line
@@ -132,7 +131,20 @@ document.addEventListener('DOMContentLoaded', function () {
         .attr("r", 8)
         .attr("fill", groupColors.normal);
 
-    // Create area generators for inhalation and exhalation
+    // Create area generator for tidal volume
+    const area = d3.area()
+        .x(d => x(d.time))
+        .y0(y(0))
+        .y1(d => y(d.volume))
+        .curve(d3.curveBasis);
+
+    // Create path for the area
+    const areaPath = g.append("path")
+        .attr("class", "volume-area")
+        .attr("fill", groupColors.normal)
+        .attr("fill-opacity", 0.3);
+
+    // Keep the original flow area generators for compatibility
     const areaAbove = d3.area()
         .x(d => x(d.time))
         .y0(y(0))
@@ -145,23 +157,20 @@ document.addEventListener('DOMContentLoaded', function () {
         .y1(d => d.flow < 0 ? y(d.flow) : y(0))
         .curve(d3.curveBasis);
 
-    // Create paths for the areas
+    // Create paths for the flow areas (hidden by default)
     const areaPathAbove = g.append("path")
         .attr("class", "area-above")
         .attr("fill", groupColors.asthma)
-        .attr("fill-opacity", 0.3);
+        .attr("fill-opacity", 0);
 
     const areaPathBelow = g.append("path")
         .attr("class", "area-below")
         .attr("fill", groupColors.normal)
-        .attr("fill-opacity", 0.3);
+        .attr("fill-opacity", 0);
 
     // Load subject info to get group classifications
     let subjectGroups = {};
     let selectedGroup = "normal"; // Default group
-
-
-    // Replace the CSV parsing section (around line 170-195) with:
 
     d3.csv("../subject-info.csv")
         .then(subjectData => {
@@ -304,40 +313,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 legendContainer.appendChild(legendItem);
             });
         } else {
-            // Show inhalation/exhalation
-            const inhaleItem = document.createElement("div");
-            inhaleItem.className = "legend-item";
+            // Show tidal volume instead of inhalation/exhalation
+            const volumeItem = document.createElement("div");
+            volumeItem.className = "legend-item";
 
-            const inhaleColorBox = document.createElement("div");
-            inhaleColorBox.className = "legend-color";
-            inhaleColorBox.style.backgroundColor = groupColors.asthma;
+            const volumeColorBox = document.createElement("div");
+            volumeColorBox.className = "legend-color";
+            volumeColorBox.style.backgroundColor = groupColors.normal;
 
-            const inhaleLabel = document.createElement("div");
-            inhaleLabel.className = "legend-label";
-            inhaleLabel.textContent = "Inhalation";
+            const volumeLabel = document.createElement("div");
+            volumeLabel.className = "legend-label";
+            volumeLabel.textContent = "Tidal Volume";
 
-            inhaleItem.appendChild(inhaleColorBox);
-            inhaleItem.appendChild(inhaleLabel);
-
-            const exhaleItem = document.createElement("div");
-            exhaleItem.className = "legend-item";
-
-            const exhaleColorBox = document.createElement("div");
-            exhaleColorBox.className = "legend-color";
-            exhaleColorBox.style.backgroundColor = groupColors.normal;
-
-            const exhaleLabel = document.createElement("div");
-            exhaleLabel.className = "legend-label";
-            exhaleLabel.textContent = "Exhalation";
-
-            exhaleItem.appendChild(exhaleColorBox);
-            exhaleItem.appendChild(exhaleLabel);
-
-            legendContainer.appendChild(inhaleItem);
-            legendContainer.appendChild(exhaleItem);
+            volumeItem.appendChild(volumeColorBox);
+            volumeItem.appendChild(volumeLabel);
+            legendContainer.appendChild(volumeItem);
         }
     }
-
 
     // Set up group buttons
     const groupButtons = document.querySelectorAll(".group-btn");
@@ -357,7 +349,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Show all groups
                 path.attr("opacity", 0); // Hide single path
                 breathIndicator.attr("opacity", 0); // Hide indicator
-                areaPathAbove.attr("opacity", 0); // Hide areas
+                areaPath.attr("opacity", 0); // Hide volume area
+                areaPathAbove.attr("opacity", 0); // Hide flow areas
                 areaPathBelow.attr("opacity", 0);
 
                 // Select the "All" option in the dropdown
@@ -368,8 +361,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Show single group
                 path.attr("opacity", 1);
                 breathIndicator.attr("opacity", 1);
-                areaPathAbove.attr("opacity", 0.3);
-                areaPathBelow.attr("opacity", 0.3);
+                areaPath.attr("opacity", 0.3);
+                areaPathAbove.attr("opacity", 0); // Hide flow areas
+                areaPathBelow.attr("opacity", 0);
 
                 // Get a representative subject from the selected group
                 let subjectFound = false;
@@ -488,7 +482,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (visibleData.length > 0) {
                         continueAnimation = true;
 
-                        // Update line for this group
+                        // Update line for this group using volume data
                         groupPaths[group]
                             .datum(visibleData)
                             .attr("d", line)
@@ -587,29 +581,23 @@ document.addEventListener('DOMContentLoaded', function () {
                     return;
                 }
 
-                // Update line
+                // Update line with volume data
                 path.datum(visibleData)
                     .attr("d", line);
 
-                // Update areas
-                areaPathAbove.datum(visibleData)
-                    .attr("d", areaAbove);
-
-                areaPathBelow.datum(visibleData)
-                    .attr("d", areaBelow);
+                // Update volume area
+                areaPath.datum(visibleData)
+                    .attr("d", area);
 
                 // Update breathing indicator and stats (if data available)
                 if (visibleData.length > 0) {
                     const latestPoint = visibleData[visibleData.length - 1];
 
-                    // Update breathing indicator
+                    // Update breathing indicator to show position on the volume curve
                     breathIndicator
                         .attr("cx", x(latestPoint.time))
-                        .attr("cy", y(latestPoint.flow))
-                        .attr("r", Math.abs(latestPoint.flow) * 2 + 5); // Size changes with flow
-
-                    // Change color based on inhalation/exhalation
-                    breathIndicator.attr("fill", latestPoint.flow > 0 ? groupColors.asthma : groupColors.normal);
+                        .attr("cy", y(latestPoint.volume))
+                        .attr("r", 8); // Fixed size for volume visualization
 
                     // Update stats
                     currentFlowElement.textContent = `${latestPoint.flow.toFixed(2)} L/s`;
@@ -617,7 +605,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     currentVolumeElement.textContent = `${latestPoint.volume.toFixed(2)} L`;
 
-                    // Detect breath cycles (when flow crosses from negative to positive)
+                    // Still detect breath cycles using flow data
                     if (latestPoint.flow > 0 && !isInhaling) {
                         isInhaling = true;
 
