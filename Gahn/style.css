@@ -103,6 +103,14 @@ section p {
     text-align: justify;
 }
 
+section a {
+    color: var(--primary-color);
+}
+
+section a:visited {
+    color: var(--primary-color);
+}
+
 .data-setup {
     max-width: 50%;
     height: auto;
@@ -164,6 +172,14 @@ footer {
     display: flex;
     flex-direction: column;
     align-items: center;
+}
+
+.footer-container a {
+    color: var(--primary-color);
+}
+
+.footer-container a:visited {
+    color: var(--primary-color);
 }
 
 .dep-credits {
