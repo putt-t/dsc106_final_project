@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizing Expiratory Occlusion</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <header>
+        <div class="dep-header">
+            <img src="img/doge_logo.png" alt="DOGE Logo" id="doge-logo-header">
+            <h1>Department of Graphics Engineering</h1>
+        </div>
+        <div class="title-container">
+            <h1>A Breath Apart - Visualizing the Differences Between Lungs Across Multiple Lung Conditions</h1>
+            <h2>An interactive visualization of expiratory occlusions</h2>
+            <p class="authors">Gahn Wuwong, Nathaphat Taleongpong, Jonathan Gu</p>
+        </div>
+    </header>
+
+    <div class="section-introduction">
+        <h2>Understanding Expiratory Occlusion</h2>
+        <p>Expiratory occlusion is a technique used to measure the mechanical properties of the respiratory system. This
+            interactive exploration visualizes expiratory occlusions from 80 participants with various lung conditions.
+        </p>
+    </div>
+
+    <div class="section-data">
+        <h2>The Data</h2>
+        <p>We used data from the paper <i>Respiratory dataset from PEEP study with expiratory occlusion</i>. The data
+            was collected from 80 participants with various lung conditions. The participants were split evenly into
+            groups based on sex and lung condition as either asthmatic, smoker, vaper, or healthy. The information about
+            the participants were self-reported as well as measured. The sex (M/F), height (cm), weight (kg), age
+            (years), and history of asthma, smoking, and vaping was self-reported using a questionnaire. The initial
+            chest width and depth were measured. An example of the setup is shown below.
+        </p>
+        <img src="img/figure-1.png" alt="Data Setup" id="data-setup">
+        <p>
+            [write about data collection methods]
+
+            <br>
+
+            You can download the dataset
+            <a href="https://physionet.org/content/respiratory-dataset/1.0.0/" target="_blank">here</a>.
+        </p>
+    </div>
+
+    <div class="section-demographics">
+        <h2>Participant Demographics</h2>
+    </div>
+
+    <div class="section-visualization">
+        <h2>Expiratory Occlusions Across Groups</h2>
+    </div>
+
+    <footer>
+        <div class="dep-credits">
+            <h3>Department of Graphics Engineering</h3>
+            <img src="img/doge_logo.png" alt="DOGE Logo" id="doge-logo-footer">
+        </div>
+        <p>Created with D3.js | Data from <a href="https://physionet.org/content/respiratory-dataset/1.0.0/"
+                target="_blank">physionet</a></p>
+    </footer>
+</body>
+
+</html>
