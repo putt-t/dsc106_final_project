@@ -104,6 +104,16 @@
             </div>
 
             <div class="viz-container" id="breathing-container">
+                <!-- Hidden for prototype -->
+                <div class="circle-viz-container" style="display: none;">
+                    <div class="main-viz" id="lung-viz">
+                        <!-- Lung circle graph -->
+                    </div>
+                    <div class="main-viz" id="chest-viz">
+                        <!-- Chest & abdomen circle graph -->
+                    </div>
+                </div>
+                
                 <div class="main-viz" id="breathing-viz"></div>
             </div>
 
@@ -124,33 +134,6 @@
 
             <div class="breathing-legend">
                 <!-- Legend will be populated by JavaScript -->
-            </div>
-        </section>
-
-        <section class="section-visualization">
-            <h2>Expiratory Occlusions Across Groups</h2>
-            <p>
-                Explore how the amount and rate of air entering the lungs vary
-                across non-smokers, smokers, and vapers.
-            </p>
-            <div class="controls">
-                <div class="filters">
-                    <!-- Group filter controls -->
-                </div>
-                <div class="slider">
-                    <!-- Timeline slider -->
-                </div>
-            </div>
-            <div class="viz-container" id="main-container">
-                <div class="main-viz" id="lung-viz">
-                    <!-- Lung circle graph -->
-                </div>
-                <div class="main-viz" id="line-viz">
-                    <!-- Line plot of sensor data -->
-                </div>
-                <div class="main-viz" id="chest-viz">
-                    <!-- Chest & abdomen circle graph -->
-                </div>
             </div>
         </section>
     </main>

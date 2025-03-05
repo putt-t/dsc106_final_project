@@ -125,6 +125,13 @@ section a:visited {
     margin-top: 1.5rem;
 }
 
+.circle-viz-container {
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
 /* Two different grid setups */
 #demo-container {
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
