@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .range([0, innerWidth]);
 
     const y = d3.scaleLinear()
-        .domain([0, 10])
+        .domain([0, 4])
         .range([innerHeight, 0]);
 
     // Add axes
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .attr("x1", 0)
         .attr("y1", y(0))
         .attr("x2", 0)
-        .attr("y2", y(10));
+        .attr("y2", y(4));
 
     gradient.append("stop")
         .attr("offset", "0%")
@@ -413,44 +413,50 @@ document.addEventListener('DOMContentLoaded', function () {
             cancelAnimationFrame(animationFrameId);
         }
 
-        console.log("Starting animateAllGroups");
-        console.log("Available subject groups:", subjectGroups);
+        console.log("Starting animateAllGroups with data averaging");
 
-        // Get one representative subject from each group
-        const representativeSubjects = {};
+        // Group subjects by their classification
+        const subjectsByGroup = {};
         Object.keys(groupColors).forEach(group => {
-            // Find the first subject in this group
+            subjectsByGroup[group] = [];
             for (let id in subjectGroups) {
                 if (subjectGroups[id] === group) {
-                    representativeSubjects[group] = id;
-                    break;
+                    subjectsByGroup[group].push(id);
                 }
             }
         });
 
-        console.log("Representative subjects:", representativeSubjects);
+        console.log("Subjects by group:", subjectsByGroup);
 
-        // Load data for all representative subjects
-        const promises = Object.entries(representativeSubjects).map(([group, id]) => {
-            console.log(`Loading data for group ${group}, subject ${id}`);
-            return d3.csv(`../Processed_Dataset/ProcessedData_Subject${id.toString().padStart(2, '0')}.csv`)
-                .then(data => {
-                    return {
-                        group: group,
-                        data: data.map(d => ({
+        // Load data for all subjects in each group
+        const groupPromises = Object.entries(subjectsByGroup).map(([group, subjectIds]) => {
+            // Load data for up to 5 subjects per group to keep performance reasonable
+            const sampleSubjects = subjectIds.slice(0, 5);
+
+            const subjectPromises = sampleSubjects.map(id => {
+                return d3.csv(`../Processed_Dataset/ProcessedData_Subject${id.toString().padStart(2, '0')}.csv`)
+                    .then(data => {
+                        return data.map(d => ({
                             time: +d["Time [s]"],
                             flow: +d["Flow [L/s]"],
                             volume: Math.max(0, +d["V_tidal [L]"])
-                        })).filter(d => d.time <= 300) // Only get data <= 300 seconds
-                    };
-                })
-                .catch(error => {
-                    console.error(`Error loading data for group ${group}, subject ${id}:`, error);
-                    return { group: group, data: [] }; // Return empty data on error
-                });
+                        })).filter(d => d.time <= 300); // Only get data <= 300 seconds
+                    })
+                    .catch(error => {
+                        console.error(`Error loading data for subject ${id}:`, error);
+                        return []; // Return empty data on error
+                    });
+            });
+
+            return Promise.all(subjectPromises).then(allSubjectData => {
+                return {
+                    group: group,
+                    subjectData: allSubjectData
+                };
+            });
         });
 
-        Promise.all(promises).then(allData => {
+        Promise.all(groupPromises).then(groupData => {
             // Set up time window (10 seconds)
             const timeWindow = 10;
             let currentTime = 0;
@@ -462,20 +468,59 @@ document.addEventListener('DOMContentLoaded', function () {
             xAxis.call(d3.axisBottom(x).ticks(10));
             yAxis.call(d3.axisLeft(y).ticks(5));
 
+            // Create time-binned average data for each group
+            const binSize = 0.1; // 100ms bins
+            const averagedGroupData = {};
+
+            groupData.forEach(group => {
+                const allData = group.subjectData;
+                if (allData.length === 0) return;
+
+                // Create bins from 0 to 300 seconds
+                const bins = {};
+                for (let t = 0; t <= 300; t += binSize) {
+                    bins[t.toFixed(1)] = {
+                        count: 0,
+                        totalVolume: 0
+                    };
+                }
+
+                // Sum up values in each bin
+                allData.forEach(subjectData => {
+                    subjectData.forEach(point => {
+                        const binKey = (Math.floor(point.time / binSize) * binSize).toFixed(1);
+                        if (bins[binKey]) {
+                            bins[binKey].count++;
+                            bins[binKey].totalVolume += point.volume;
+                        }
+                    });
+                });
+
+                // Calculate averages and create data points
+                averagedGroupData[group.group] = Object.entries(bins)
+                    .map(([time, values]) => ({
+                        time: parseFloat(time),
+                        volume: values.count > 0 ? values.totalVolume / values.count : 0
+                    }))
+                    .filter(d => d.volume > 0) // Filter out empty bins
+                    .sort((a, b) => a.time - b.time); // Sort by time
+            });
+
+            console.log("Averaged group data created:", Object.keys(averagedGroupData));
+
             // Animation loop
             function animate() {
                 let continueAnimation = false;
 
-                allData.forEach(groupData => {
-                    const group = groupData.group;
-                    const visibleData = groupData.data.filter(d =>
+                Object.entries(averagedGroupData).forEach(([group, data]) => {
+                    const visibleData = data.filter(d =>
                         d.time >= currentTime && d.time <= currentTime + timeWindow
                     );
 
                     if (visibleData.length > 0) {
                         continueAnimation = true;
 
-                        // Update line for this group using volume data
+                        // Update line for this group using average volume data
                         groupPaths[group]
                             .datum(visibleData)
                             .attr("d", line)
@@ -493,10 +538,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
                 // Reset stats display in multi-group mode
-                currentFlowElement.textContent = "Multiple";
-                currentVolumeElement.textContent = "Multiple";
-                breathingRateElement.textContent = "Multiple";
-
+                currentFlowElement.textContent = "Average";
+                currentVolumeElement.textContent = "Average";
+                breathingRateElement.textContent = "Average";
 
                 // Advance time based on animation speed
                 currentTime += 0.02 * animationSpeed;
@@ -504,7 +548,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Update x domain
                 x.domain([currentTime, currentTime + timeWindow]);
 
-                // Update x-axis with transition
+                // Update x-axis
                 xAxis.call(d3.axisBottom(x).ticks(10));
 
                 // Continue animation
