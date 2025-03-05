@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let subjectGroups = {};
     let selectedGroup = "normal"; // Default group
 
-    d3.csv("../subject-info.csv")
+    d3.csv("subject-info.csv")
         .then(subjectData => {
             console.log("Subject data loaded successfully:", subjectData.length, "records");
             console.log("Sample data:", subjectData[0]); // Log first record to see column names
@@ -442,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const sampleSubjects = subjectIds.slice(0, 5);
 
             const subjectPromises = sampleSubjects.map(id => {
-                return d3.csv(`../Processed_Dataset/ProcessedData_Subject${id.toString().padStart(2, '0')}.csv`)
+                return d3.csv(`Processed_Dataset/ProcessedData_Subject${id.toString().padStart(2, '0')}.csv`)
                     .then(data => {
                         return data.map(d => ({
                             time: +d["Time [s]"],
@@ -584,7 +584,7 @@ document.addEventListener('DOMContentLoaded', function () {
         breathingRateArray = [];
 
         // Load data for the selected subject
-        d3.csv(`../Processed_Dataset/ProcessedData_Subject${subjectId.toString().padStart(2, '0')}.csv`).then(data => {
+        d3.csv(`Processed_Dataset/ProcessedData_Subject${subjectId.toString().padStart(2, '0')}.csv`).then(data => {
             // Process data
             let processedData = data.map(d => ({
                 time: +d["Time [s]"],

@@ -57,7 +57,7 @@ const yAxisLabel = chart
     .text("Count");
 
 // Load and process data
-d3.csv("../subject-info.csv").then((data) => {
+d3.csv("subject-info.csv").then((data) => {
     // Function to update chart based on selected view
     function updateChart(viewType) {
         // Clear existing elements
