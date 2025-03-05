@@ -269,6 +269,12 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 const group = this.options[this.selectedIndex].dataset.group;
                 selectedGroup = group;
+                groupButtons.forEach(btn => {
+                    btn.classList.remove("active");
+                    if (btn.dataset.group === group) {
+                        btn.classList.add("active");
+                    }
+                });
                 animateBreathing(subjectId);
             }
 
@@ -409,9 +415,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function animateAllGroups() {
         // Cancel any existing animation
-        if (animationFrameId) {
-            cancelAnimationFrame(animationFrameId);
-        }
+        // if (animationFrameId) {
+        //     cancelAnimationFrame(animationFrameId);
+        // }
+
+        cancelAnimationFrame(animationFrameId);
 
         console.log("Starting animateAllGroups with data averaging");
 
