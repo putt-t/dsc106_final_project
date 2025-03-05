@@ -197,23 +197,30 @@ footer {
 }
 
 .demographics-controls button {
+    margin: 3px;
     padding: 8px 16px;
-    background-color: var(--light-gray);
-    border: 1px solid var(--dark-gray);
+    border: 1px solid #6c90b0;
     border-radius: 4px;
+    background-color: white; /* var(--light-gray); */
+    color: #6c90b0;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.3s;
-    color: var(--text-color);
+    transition: all 0.3s ease;
 }
 
 .demographics-controls button:hover {
-    background-color: var(--secondary-color);
+    /* background-color: var(--secondary-color); */
+    background-color: #7ca1cc;
     color: white;
+    transform: translateY(-1px);
 }
 
 .demographics-controls button:focus {
     outline: none;
-    box-shadow: 0 0 0 2px var(--secondary-color);
+    background-color: #7ca1cc;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    /* box-shadow: 0 0 0 2px var(--secondary-color); */
 }
 
 #demographics-chart {
