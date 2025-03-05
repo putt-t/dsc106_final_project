@@ -85,7 +85,7 @@ d3.csv("../subject-info.csv").then((data) => {
 
             colorScale = d3.scaleOrdinal()
                 .domain(["Male", "Female"])
-                .range(["#4e79a7", "#f28e2c"]);
+                .range(["#7ca1cc", "#e57a77"]);
         } else if (viewType === "asthma") {
             chartTitle.text("Asthma Status");
             xAxisLabel.text("Has Asthma");
@@ -103,7 +103,7 @@ d3.csv("../subject-info.csv").then((data) => {
 
             colorScale = d3.scaleOrdinal()
                 .domain(["Yes", "No"])
-                .range(["#59a14f", "#e15759"]);
+                .range(["#7ca1cc", "#e57a77"]);
         } else if (viewType === "smoking") {
             chartTitle.text("Smoking History");
             xAxisLabel.text("Has Smoked");
@@ -121,7 +121,7 @@ d3.csv("../subject-info.csv").then((data) => {
 
             colorScale = d3.scaleOrdinal()
                 .domain(["Yes", "No"])
-                .range(["#59a14f", "#e15759"]);
+                .range(["#7ca1cc", "#e57a77"]);
         } else if (viewType === "vaping") {
             chartTitle.text("Vaping History");
             xAxisLabel.text("Has Vaped");
@@ -139,7 +139,7 @@ d3.csv("../subject-info.csv").then((data) => {
 
             colorScale = d3.scaleOrdinal()
                 .domain(["Yes", "No"])
-                .range(["#59a14f", "#e15759"]);
+                .range(["#7ca1cc", "#e57a77"]);
         } else if (viewType === "age") {
             chartTitle.text("Age Distribution");
             xAxisLabel.text("Age Group");
@@ -165,10 +165,9 @@ d3.csv("../subject-info.csv").then((data) => {
                     count: count,
                 };
             });
-
             colorScale = d3.scaleOrdinal()
                 .domain(ageGroups.map(g => g.label))
-                .range(d3.schemeBlues[5]);
+                .range(["#7ca1cc", "#e57a77", "#66c2a5", "#fdae61", "#3d65a5"]);
         }
 
         // Set up scales
