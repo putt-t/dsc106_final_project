@@ -187,3 +187,55 @@ footer {
         margin: 0.5rem 0 0 0;
     }
 }
+
+/* Demographics Visualization Styles */
+.demographics-controls {
+    margin: 20px 0;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.demographics-controls button {
+    padding: 8px 16px;
+    background-color: var(--light-gray);
+    border: 1px solid var(--dark-gray);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    color: var(--text-color);
+}
+
+.demographics-controls button:hover {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.demographics-controls button:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--secondary-color);
+}
+
+#demographics-chart {
+    margin: 20px auto;
+    max-width: 800px;
+}
+
+.bar {
+    transition: fill 0.3s;
+}
+
+.bar:hover {
+    fill-opacity: 0.8;
+}
+
+.chart-title,
+.x-axis-label,
+.y-axis-label {
+    font-family: var(--font-family);
+}
+
+.bar-label {
+    font-family: var(--font-family);
+    font-weight: bold;
+}

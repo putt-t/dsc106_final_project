@@ -62,20 +62,14 @@
             <p>
                 Explore the demographics breakdown of the 80 participants.
             </p>
-            <div class="viz-container" id="demo-container">
-                <div class="viz-item" id="demo-sex">
-                    <!-- Sex pie chart -->
-                </div>
-                <div class="viz-item" id="demo-age">
-                    <!-- Age bar chart -->
-                </div>
-                <div class="viz-item" id="demo-health">
-                    <!-- Health pie chart -->
-                </div>
-                <div class="viz-item" id="demo-bmi">
-                    <!-- BMI bar chart -->
-                </div>
+            <div class="demographics-controls">
+                <button id="view-gender">Gender</button>
+                <button id="view-asthma">Asthma Status</button>
+                <button id="view-smoking">Smoking History</button>
+                <button id="view-vaping">Vaping History</button>
+                <button id="view-age">Age Distribution</button>
             </div>
+            <div id="demographics-chart"></div>
         </section>
 
         <section class="section-visualization">
@@ -118,6 +112,8 @@
             </p>
         </div>
     </footer>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="demographics.js"></script>
 </body>
 
 </html>
