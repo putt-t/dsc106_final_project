@@ -1,48 +1,189 @@
+/* Root Variables for Colors & Fonts */
 :root {
     --primary-color: #2c3e50;
     --secondary-color: #3498db;
     --accent-color: #e74c3c;
-    --background-color: #f9f9f9;
-    --text-color: #333;
+    --background-color: #ffffff;
+    --text-color: #333333;
     --light-gray: #ecf0f1;
     --dark-gray: #7f8c8d;
+    --font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
+/* Global Reset & Typography */
 * {
-    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    width: 100%;
+    box-sizing: border-box;
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: var(--font-family);
     color: var(--text-color);
     background-color: var(--background-color);
-    padding-bottom: 2rem;
+    line-height: 1.6;
+    font-size: 16px;
+}
+
+/* Container for Centralized Content */
+header,
+main,
+footer {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+/* Header Styles */
+header {
+    border-bottom: 1px solid var(--light-gray);
+    margin-bottom: 2rem;
+}
+
+.header-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .dep-header {
-    background-color: var(--primary-color);
     display: flex;
     align-items: center;
-    justify-content: space-between; /* Space out the content */
-    color: white;
-    padding: 0 8em; /* Add some padding */
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 1rem;
 }
 
 .dep-header h1 {
-    font-size: 60px;
-    line-height: 1.2;
-    text-align: center; /* Center the text */
-    flex: 1; /* Allow the h1 to take up remaining space */
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    margin-left: 1rem;
 }
 
-#doge-logo-header {
-    width: 10em;
-    height: 10em;
+#logo {
+    width: 60px;
+    height: auto;
+}
+
+.title-container {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.title-container h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.title-container h2 {
+    font-size: 1.3rem;
+    font-weight: normal;
+    color: var(--dark-gray);
+    margin-bottom: 0.5rem;
+}
+
+.authors {
+    font-size: 0.9rem;
+    color: var(--dark-gray);
+}
+
+/* Section Styles */
+section {
+    margin-bottom: 3rem;
+}
+
+section h2 {
+    font-size: 1.8rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+section p {
+    margin-bottom: 1rem;
+    text-align: justify;
+}
+
+.data-setup {
+    max-width: 100%;
+    height: auto;
     display: block;
-    margin: 1rem 0; /* Remove right margin */
-    order: -1; /* Move the logo to the left of h1 */
-    flex-shrink: 0; /* Prevent the logo from shrinking */
+    margin: 1rem auto;
+}
+
+/* Visualization Container */
+.viz-container {
+    display: grid;
+    grid-gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+/* Two different grid setups */
+#demo-container {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+#main-container {
+    grid-template-columns: 1fr;
+    grid-gap: 2rem;
+}
+
+/* Viz Items */
+.viz-item,
+.main-viz {
+    background-color: var(--light-gray);
+    border: 1px solid var(--light-gray);
+    padding: 1rem;
+    border-radius: 4px;
+}
+
+/* Controls Styling */
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+}
+
+.filters,
+.slider {
+    flex: 1;
+    min-width: 200px;
+}
+
+/* Footer Styles */
+footer {
+    border-top: 1px solid var(--light-gray);
+    margin-top: 2rem;
+    padding-top: 1rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--dark-gray);
+}
+
+.footer-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.dep-credits {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#footer-logo {
+    width: 40px;
+    height: auto;
+}
+
+/* Responsive Adjustments */
+@media only screen and (max-width: 768px) {
+    .dep-header {
+        flex-direction: column;
+    }
+
+    .dep-header h1 {
+        margin: 0.5rem 0 0 0;
+    }
 }
