@@ -9,11 +9,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Group colors
     const groupColors = {
-        normal: getComputedStyle(document.documentElement).getPropertyValue('--secondary-color').trim(),
-        asthma: getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim(),
+        // normal: getComputedStyle(document.documentElement).getPropertyValue('--secondary-color').trim(),
+        // asthma: getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim(),
+        normal: '#6c90b0',
+        asthma: '#e57a77',
         smoker: "#9b59b6", // purple
         vaper: "#f1c40f"   // yellow
     };
+
+    const red = '#e57a77';
+    const blue = '#7ca1cc';
+
+    // Averaged group data
+    const averagedGroupData = {};
+    const timeWindow = 10;
+    let currentTime = 0;
 
     // Create SVG
     const svg = d3.select("#breathing-viz")
@@ -104,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const path = g.append("path")
         .attr("class", "flow-line")
         .attr("fill", "none")
-        .attr("stroke", "#3498db")
+        .attr("stroke", groupColors.normal)
         .attr("stroke-width", 3);
 
     // Create group paths for "All" mode
@@ -173,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // Parse subject classifications
             subjectData.forEach(subject => {
                 // Check what columns are available
-                console.log("Subject record keys:", Object.keys(subject));
+                // console.log("Subject record keys:", Object.keys(subject));
 
                 // Try different ways to get the ID
                 const subjectId = subject["Subject Number"] || subject["SubjectID"] || subject["Subject"] || subject["ID"];
@@ -214,11 +224,105 @@ document.addEventListener('DOMContentLoaded', function () {
                 const condition = parts[0] || "";
                 const gender = parts[1] || "";
 
-                console.log(`Subject ${id}: Group: ${group}, Condition: ${condition}, Gender: ${gender}`);
+                // console.log(`Subject ${id}: Group: ${group}, Condition: ${condition}, Gender: ${gender}`);
             });
 
             // After all subjects are processed, then populate the selector
             populateParticipantSelect();
+
+            // console.log("Compute data averaging");
+
+            // Group subjects by their classification
+            const subjectsByGroup = {};
+            Object.keys(groupColors).forEach(group => {
+                subjectsByGroup[group] = [];
+                for (let id in subjectGroups) {
+                    if (subjectGroups[id] === group) {
+                        subjectsByGroup[group].push(id);
+                    }
+                }
+            });
+            // console.log("Subjects by group:", subjectsByGroup);
+
+            // Load data for all subjects in each group
+            const groupPromises = Object.entries(subjectsByGroup).map(([group, subjectIds]) => {
+                // Load data for up to 5 subjects per group to keep performance reasonable
+                const sampleSubjects = subjectIds.slice(0, 5);
+
+                const subjectPromises = sampleSubjects.map(id => {
+                    return d3.csv(`Processed_Dataset/ProcessedData_Subject${id.toString().padStart(2, '0')}.csv`)
+                        .then(data => {
+                            return data.map(d => ({
+                                time: +d["Time [s]"],
+                                flow: +d["Flow [L/s]"],
+                                volume: Math.max(0, +d["V_tidal [L]"])
+                            })).filter(d => d.time <= 300); // Only get data <= 300 seconds
+                        })
+                        .catch(error => {
+                            console.error(`Error loading data for subject ${id}:`, error);
+                            return []; // Return empty data on error
+                        });
+                });
+
+                return Promise.all(subjectPromises).then(allSubjectData => {
+                    return {
+                        group: group,
+                        subjectData: allSubjectData
+                    };
+                });
+            });
+
+            Promise.all(groupPromises).then(groupData => {
+
+                // Update x domain
+                x.domain([currentTime, currentTime + timeWindow]);
+
+                // Update axes
+                xAxis.call(d3.axisBottom(x).ticks(10));
+                yAxis.call(d3.axisLeft(y).ticks(5));
+
+                // Create time-binned average data for each group
+                const binSize = 0.1; // 100ms bins
+
+                groupData.forEach(group => {
+                    const allData = group.subjectData;
+                    if (allData.length === 0) return;
+
+                    // Create bins from 0 to 300 seconds
+                    const bins = {};
+                    for (let t = 0; t <= 300; t += binSize) {
+                        bins[t.toFixed(1)] = {
+                            count: 0,
+                            totalVolume: 0
+                        };
+                    }
+
+                    // Sum up values in each bin
+                    allData.forEach(subjectData => {
+                        subjectData.forEach(point => {
+                            const binKey = (Math.floor(point.time / binSize) * binSize).toFixed(1);
+                            if (bins[binKey]) {
+                                bins[binKey].count++;
+                                bins[binKey].totalVolume += point.volume;
+                            }
+                        });
+                    });
+
+                    // Calculate averages and create data points
+                    averagedGroupData[group.group] = Object.entries(bins)
+                        .map(([time, values]) => ({
+                            time: parseFloat(time),
+                            volume: values.count > 0 ? values.totalVolume / values.count : 0
+                        }))
+                        .filter(d => d.volume > 0) // Filter out empty bins
+                        .sort((a, b) => a.time - b.time); // Sort by time
+                });
+
+                // console.log("Averaged group data created:", Object.keys(averagedGroupData));
+            }).catch(error => {
+                console.error("Error loading data for all groups:", error);
+            });
+
         })
         .catch(error => {
             console.error("Error loading subject info:", error);
@@ -230,35 +334,72 @@ document.addEventListener('DOMContentLoaded', function () {
         const participantSelect = document.getElementById("participant-select");
         participantSelect.innerHTML = ""; // Clear existing options
 
-        console.log("Populating participant select with subject groups:", subjectGroups);
+        // console.log("Populating participant select with subject groups:", subjectGroups);
 
         // Add "All" option
         const allOption = document.createElement("option");
         allOption.value = "all";
         allOption.textContent = "All Groups (Comparison)";
         allOption.dataset.group = "all";
+        allOption.classList.add("participant-option");
         participantSelect.appendChild(allOption);
 
         // Add individual subjects
         for (let i = 1; i <= 80; i++) {
             const group = subjectGroups[i] || "unknown";
-            console.log(`Subject ${i}: Group = ${group}`);
+            // console.log(`Subject ${i}: Group = ${group}`);
 
             const option = document.createElement("option");
             option.value = i;
             option.textContent = `Subject ${i.toString().padStart(2, '0')} (${group.charAt(0).toUpperCase() + group.slice(1)})`;
             option.dataset.group = group;
+            option.classList.add("participant-option");
+
+            if (i === 1) {
+                option.classList.add("participant-active"); // Select the first subject by default
+            }
+
             participantSelect.appendChild(option);
         }
 
         // Set up change listener
         participantSelect.addEventListener("change", function () {
+            // Get selected subject
             const subjectId = this.value;
+            const groupButtons = document.querySelectorAll(".group-btn");
+
+            // Hide all group paths initially
+            Object.values(groupPaths).forEach(path => path.attr("opacity", 0));
+
+            let selectedParticipants = document.querySelectorAll(".participant-option");
+
+            // console.log(selectedParticipants);
+
+            selectedParticipants.forEach(participant => {
+                // console.log(participant)
+                if (participant.value === subjectId) {
+                    if (participant.classList.contains("participant-active")) {
+                        return; // Don't do anything if already active
+                    }
+                    participant.classList.add("participant-active");
+                } else {
+                    participant.classList.remove("participant-active");
+                }
+            });
 
             if (subjectId === "all") {
+                // Show all groups
+                path.attr("opacity", 0); // Hide single path
+                breathIndicator.attr("opacity", 0); // Hide indicator
+                areaPath.attr("opacity", 0); // Hide volume area
+                areaPathAbove.attr("opacity", 0); // Hide flow areas
+                areaPathBelow.attr("opacity", 0);
+
+                // Select the "All" option in the dropdown
+                participantSelect.value = "all";
+
                 selectedGroup = "all";
                 // Update buttons to reflect "all" selection
-                const groupButtons = document.querySelectorAll(".group-btn");
                 groupButtons.forEach(btn => {
                     btn.classList.remove("active");
                     if (btn.dataset.group === "all") {
@@ -275,6 +416,14 @@ document.addEventListener('DOMContentLoaded', function () {
                         btn.classList.add("active");
                     }
                 });
+
+                // Show single group
+                path.attr("opacity", 1);
+                breathIndicator.attr("opacity", 1);
+                areaPath.attr("opacity", 0.3);
+                areaPathAbove.attr("opacity", 0); // Hide flow areas
+                // areaPathBelow.attr("opacity", 0);
+
                 animateBreathing(subjectId);
             }
 
@@ -306,6 +455,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 const label = document.createElement("div");
                 label.className = "legend-label";
                 label.textContent = group.charAt(0).toUpperCase() + group.slice(1);
+                if (group === "normal") {
+                    label.textContent = 'Healthy';
+                }
 
                 legendItem.appendChild(colorBox);
                 legendItem.appendChild(label);
@@ -334,12 +486,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const groupButtons = document.querySelectorAll(".group-btn");
     groupButtons.forEach(button => {
         button.addEventListener("click", function () {
+            if (this.classList.contains("active")) return; // Don't do anything if already active
+
             groupButtons.forEach(btn => btn.classList.remove("active"));
             this.classList.add("active");
             selectedGroup = this.dataset.group;
 
             // Update the participant select dropdown to match the selected group
-            const participantSelect = document.getElementById("participant-select");
+            let participantSelect = document.getElementById("participant-select");
+
 
             // Hide all group paths initially
             Object.values(groupPaths).forEach(path => path.attr("opacity", 0));
@@ -355,6 +510,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Select the "All" option in the dropdown
                 participantSelect.value = "all";
 
+                let selectedParticipants = document.querySelectorAll(".participant-option");
+
+                    selectedParticipants.forEach(participant => {
+                        // console.log(participant)
+                        if (participant.value === participantSelect.value) {
+                            if (participant.classList.contains("participant-active")) {
+                                return; // Don't do anything if already active
+                            }
+                            participant.classList.add("participant-active");
+                        } else {
+                            participant.classList.remove("participant-active");
+                        }
+                    });
+
                 animateAllGroups();
             } else {
                 // Show single group
@@ -362,7 +531,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 breathIndicator.attr("opacity", 1);
                 areaPath.attr("opacity", 0.3);
                 areaPathAbove.attr("opacity", 0); // Hide flow areas
-                areaPathBelow.attr("opacity", 0);
+                areaPathBelow.attr("opacity", 1);
 
                 // Get a representative subject from the selected group
                 let subjectFound = false;
@@ -376,6 +545,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
                 if (subjectFound) {
+                    let selectedParticipants = document.querySelectorAll(".participant-option");
+
+                    selectedParticipants.forEach(participant => {
+                        // console.log(participant)
+                        if (participant.value === participantSelect.value) {
+                            if (participant.classList.contains("participant-active")) {
+                                return; // Don't do anything if already active
+                            }
+                            participant.classList.add("participant-active");
+                        } else {
+                            participant.classList.remove("participant-active");
+                        }
+                    });
+
                     animateBreathing(participantSelect.value);
                 }
             }
@@ -393,18 +576,33 @@ document.addEventListener('DOMContentLoaded', function () {
         animationSpeed = parseFloat(this.value);
         speedValue.textContent = `${animationSpeed}x`;
 
-        if (selectedGroup === "all") {
-            animateAllGroups();
-        } else {
-            const currentSubject = document.getElementById("participant-select").value;
-            animateBreathing(currentSubject);
-        }
+        // if (selectedGroup === "all") {
+        //     // Show all groups
+        //     path.attr("opacity", 0); // Hide single path
+        //     breathIndicator.attr("opacity", 0); // Hide indicator
+        //     areaPath.attr("opacity", 0); // Hide volume area
+        //     areaPathAbove.attr("opacity", 0); // Hide flow areas
+        //     areaPathBelow.attr("opacity", 0);
+
+        //     animateAllGroups();
+        // } else {
+        //     // Show single group
+        //     path.attr("opacity", 1);
+        //     breathIndicator.attr("opacity", 1);
+        //     areaPath.attr("opacity", 0.3);
+        //     areaPathAbove.attr("opacity", 0); // Hide flow areas
+        //     areaPathBelow.attr("opacity", 0);
+
+        //     const currentSubject = document.getElementById("participant-select").value;
+        //     animateBreathing(currentSubject);
+        // }
     });
 
     // Stats elements
     const currentFlowElement = document.getElementById("current-flow");
     const currentVolumeElement = document.getElementById("current-volume");
     const breathingRateElement = document.getElementById("breathing-rate");
+    breathingRateElement.textContent = "-- breaths/min";
 
     // Animation variables
     let animationFrameId;
@@ -412,164 +610,74 @@ document.addEventListener('DOMContentLoaded', function () {
     let lastBreathTime = 0;
     let isInhaling = false;
     let breathingRateArray = [];
+    let prevVolume = 0;
 
     function animateAllGroups() {
         // Cancel any existing animation
-        // if (animationFrameId) {
-        //     cancelAnimationFrame(animationFrameId);
-        // }
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+        }
 
-        cancelAnimationFrame(animationFrameId);
+        // Animation loop
+        function animate() {
+            let continueAnimation = false;
 
-        console.log("Starting animateAllGroups with data averaging");
+            Object.entries(averagedGroupData).forEach(([group, data]) => {
+                const visibleData = data.filter(d =>
+                    d.time >= currentTime && d.time <= currentTime + timeWindow
+                );
 
-        // Group subjects by their classification
-        const subjectsByGroup = {};
-        Object.keys(groupColors).forEach(group => {
-            subjectsByGroup[group] = [];
-            for (let id in subjectGroups) {
-                if (subjectGroups[id] === group) {
-                    subjectsByGroup[group].push(id);
+                if (visibleData.length > 0) {
+                    continueAnimation = true;
+
+                    // Update line for this group using average volume data
+                    groupPaths[group]
+                        .datum(visibleData)
+                        .attr("d", line)
+                        .attr("opacity", 1);
+                } else {
+                    groupPaths[group].attr("opacity", 0);
                 }
+            });
+
+            if (!continueAnimation) {
+                // Reset if all data has been played
+                currentTime = 0;
+                animate();
+                return;
             }
-        });
 
-        console.log("Subjects by group:", subjectsByGroup);
+            // Reset stats display in multi-group mode
+            let statsPanel = document.getElementById('stats-panel');
+            statsPanel.style.opacity = 0; // Start fade out
 
-        // Load data for all subjects in each group
-        const groupPromises = Object.entries(subjectsByGroup).map(([group, subjectIds]) => {
-            // Load data for up to 5 subjects per group to keep performance reasonable
-            const sampleSubjects = subjectIds.slice(0, 5);
+            // Wait for transition to complete before hiding
+            setTimeout(() => {
+                statsPanel.classList.add('stats-hidden');
+            }, 500); // Match the transition duration (500ms)
 
-            const subjectPromises = sampleSubjects.map(id => {
-                return d3.csv(`Processed_Dataset/ProcessedData_Subject${id.toString().padStart(2, '0')}.csv`)
-                    .then(data => {
-                        return data.map(d => ({
-                            time: +d["Time [s]"],
-                            flow: +d["Flow [L/s]"],
-                            volume: Math.max(0, +d["V_tidal [L]"])
-                        })).filter(d => d.time <= 300); // Only get data <= 300 seconds
-                    })
-                    .catch(error => {
-                        console.error(`Error loading data for subject ${id}:`, error);
-                        return []; // Return empty data on error
-                    });
-            });
 
-            return Promise.all(subjectPromises).then(allSubjectData => {
-                return {
-                    group: group,
-                    subjectData: allSubjectData
-                };
-            });
-        });
+            // currentFlowElement.textContent = "Average";
+            // currentFlowElement.style.color = '#2c3e50';
+            // currentVolumeElement.textContent = "Average";
+            // currentVolumeElement.style.color = '#2c3e50';
+            // breathingRateElement.textContent = "Average";
 
-        Promise.all(groupPromises).then(groupData => {
-            // Set up time window (10 seconds)
-            const timeWindow = 10;
-            let currentTime = 0;
+            // Advance time based on animation speed
+            currentTime += 0.02 * animationSpeed;
 
             // Update x domain
             x.domain([currentTime, currentTime + timeWindow]);
 
-            // Update axes
+            // Update x-axis
             xAxis.call(d3.axisBottom(x).ticks(10));
-            yAxis.call(d3.axisLeft(y).ticks(5));
 
-            // Create time-binned average data for each group
-            const binSize = 0.1; // 100ms bins
-            const averagedGroupData = {};
+            // Continue animation
+            animationFrameId = requestAnimationFrame(animate);
+        }
 
-            groupData.forEach(group => {
-                const allData = group.subjectData;
-                if (allData.length === 0) return;
-
-                // Create bins from 0 to 300 seconds
-                const bins = {};
-                for (let t = 0; t <= 300; t += binSize) {
-                    bins[t.toFixed(1)] = {
-                        count: 0,
-                        totalVolume: 0
-                    };
-                }
-
-                // Sum up values in each bin
-                allData.forEach(subjectData => {
-                    subjectData.forEach(point => {
-                        const binKey = (Math.floor(point.time / binSize) * binSize).toFixed(1);
-                        if (bins[binKey]) {
-                            bins[binKey].count++;
-                            bins[binKey].totalVolume += point.volume;
-                        }
-                    });
-                });
-
-                // Calculate averages and create data points
-                averagedGroupData[group.group] = Object.entries(bins)
-                    .map(([time, values]) => ({
-                        time: parseFloat(time),
-                        volume: values.count > 0 ? values.totalVolume / values.count : 0
-                    }))
-                    .filter(d => d.volume > 0) // Filter out empty bins
-                    .sort((a, b) => a.time - b.time); // Sort by time
-            });
-
-            console.log("Averaged group data created:", Object.keys(averagedGroupData));
-
-            // Animation loop
-            function animate() {
-                let continueAnimation = false;
-
-                Object.entries(averagedGroupData).forEach(([group, data]) => {
-                    const visibleData = data.filter(d =>
-                        d.time >= currentTime && d.time <= currentTime + timeWindow
-                    );
-
-                    if (visibleData.length > 0) {
-                        continueAnimation = true;
-
-                        // Update line for this group using average volume data
-                        groupPaths[group]
-                            .datum(visibleData)
-                            .attr("d", line)
-                            .attr("opacity", 1);
-                    } else {
-                        groupPaths[group].attr("opacity", 0);
-                    }
-                });
-
-                if (!continueAnimation) {
-                    // Reset if all data has been played
-                    currentTime = 0;
-                    animate();
-                    return;
-                }
-
-                // Reset stats display in multi-group mode
-                currentFlowElement.textContent = "Average";
-                currentFlowElement.style.color = '#2c3e50';
-                currentVolumeElement.textContent = "Average";
-                currentVolumeElement.style.color = '#2c3e50';
-                breathingRateElement.textContent = "Average";
-
-                // Advance time based on animation speed
-                currentTime += 0.02 * animationSpeed;
-
-                // Update x domain
-                x.domain([currentTime, currentTime + timeWindow]);
-
-                // Update x-axis
-                xAxis.call(d3.axisBottom(x).ticks(10));
-
-                // Continue animation
-                animationFrameId = requestAnimationFrame(animate);
-            }
-
-            // Start animation
-            animate();
-        }).catch(error => {
-            console.error("Error loading data for all groups:", error);
-        });
+        // Start animation
+        animate();
     }
 
     // Animation function for single subject
@@ -580,10 +688,24 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // Reset breath tracking
+        let statsPanel = document.getElementById('stats-panel');
+
+        if (statsPanel.classList.contains('stats-hidden')) {
+            statsPanel.style.opacity = 0; // Start fade in
+
+            // Wait for transition to complete before hiding
+            setTimeout(() => {
+                statsPanel.classList.remove('stats-hidden');
+                statsPanel.style.opacity = 1; // Start fade in
+            }, 500); // Match the transition duration (500ms)
+        }
+        
         breathCount = 0;
         lastBreathTime = 0;
         isInhaling = false;
         breathingRateArray = [];
+        breathingRateElement.textContent = "-- breaths/min";
+        let frameCount = 0;
 
         // Load data for the selected subject
         d3.csv(`Processed_Dataset/ProcessedData_Subject${subjectId.toString().padStart(2, '0')}.csv`).then(data => {
@@ -623,6 +745,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     currentTime = 0; // Reset to beginning
                     breathCount = 0;
                     lastBreathTime = 0;
+                    prevVolume = 0;
                     isInhaling = false;
                     breathingRateArray = [];
                     animate();
@@ -648,45 +771,45 @@ document.addEventListener('DOMContentLoaded', function () {
                         .attr("r", 8); // Fixed size for volume visualization
 
                     // Update stats
-                    currentFlowElement.textContent = `${latestPoint.flow.toFixed(2)} L/s`;
-                    currentFlowElement.style.color = latestPoint.flow > 0 ? groupColors.normal : groupColors.asthma;
+                    if (frameCount % 3 === 0) { // Updates every _ frames
+                        currentFlowElement.textContent = `${latestPoint.flow.toFixed(2)} L/s`;
+                        currentFlowElement.style.color = latestPoint.flow > 0 ? blue : red;
 
-                    currentVolumeElement.textContent = `${latestPoint.volume.toFixed(2)} L`;
+                        currentVolumeElement.textContent = `${latestPoint.volume.toFixed(2)} L`;
+                    }
 
-                    if (latestPoint.flow > 0 && !isInhaling) {  // Use threshold to avoid noise
+                    if (latestPoint.volume >= prevVolume && !isInhaling) {  // Use threshold to avoid noise
                         isInhaling = true;
 
                         // If this isn't the first breath, calculate breathing rate
                         if (lastBreathTime > 0) {
-                            const timeBetweenBreaths = latestPoint.time - lastBreathTime;
+                            const breathsPerMinute = breathCount / (latestPoint.time / 60);
 
-                            // Only count reasonable breath intervals (between 0.5 and 10 seconds)
-                            // This gives a range of 6 to 120 breaths per minute
-                            if (timeBetweenBreaths > 0.5 && timeBetweenBreaths < 10) {
-                                const breathsPerMinute = 60 / timeBetweenBreaths;
+                            // Add to array for averaging (keep last 5 breaths)
+                            breathingRateArray.push(breathsPerMinute);
+                            if (breathingRateArray.length > 10) {
+                                breathingRateArray.shift();
+                            }
+                            // console.log("Breathing rate array:", breathingRateArray);
 
-                                // Add to array for averaging (keep last 5 breaths)
-                                breathingRateArray.push(breathsPerMinute);
-                                if (breathingRateArray.length > 5) {
-                                    breathingRateArray.shift();
-                                }
+                            // Calculate average breathing rate
+                            const avgBreathingRate = breathingRateArray.reduce((a, b) => a + b, 0) / breathingRateArray.length;
 
-                                // Calculate average breathing rate
-                                const avgBreathingRate = breathingRateArray.reduce((a, b) => a + b, 0) / breathingRateArray.length;
-
-                                // Apply a sanity check to the displayed rate
-                                if (avgBreathingRate > 6 && avgBreathingRate < 40) {
-                                    breathingRateElement.textContent = `${avgBreathingRate.toFixed(1)} breaths/min`;
-                                } else {
-                                    breathingRateElement.textContent = "-- breaths/min";
-                                }
+                            // Apply a sanity check to the displayed rate
+                            if (breathCount > 2) {
+                                breathingRateElement.textContent = `${avgBreathingRate.toFixed(1)} breaths/min`;
+                            } else {
+                                breathingRateElement.textContent = "-- breaths/min";
                             }
                         }
 
                         lastBreathTime = latestPoint.time;
                         breathCount++;
-                    } else if (latestPoint.flow < 0 && isInhaling) {  // Use threshold to avoid noise
+                        prevVolume = latestPoint.volume;
+                        // console.log("Breath count:", breathCount);
+                    } else if (latestPoint.volume < prevVolume && isInhaling) {  // Use threshold to avoid noise
                         isInhaling = false;
+                        prevVolume = latestPoint.volume;
                     }
                 }
 
@@ -701,6 +824,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // Continue animation
                 animationFrameId = requestAnimationFrame(animate);
+                frameCount++;
             }
 
             // Start animation

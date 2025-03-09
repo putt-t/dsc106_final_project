@@ -32,10 +32,24 @@
         <section class="section-introduction">
             <h2>Understanding Expiratory Occlusion</h2>
             <p>
-                Expiratory occlusion is a technique used to measure the
-                mechanical properties of the respiratory system. This
-                interactive exploration visualizes expiratory occlusions from
-                80 participants with various lung conditions.
+                The rising prevalence of respiratory diseases is placing a growing strain on healthcare systems, driven
+                by increasing cases of asthma, chronic obstructive pulmonary disease (COPD), and respiratory infections.
+                Environmental factors such as air pollution and occupational hazards, along with lifestyle choices like
+                smoking and vaping, further contribute to this burden. Smoking is a well-known cause of lung damage,
+                leading to chronic inflammation, airway obstruction, and diseases like COPD and lung cancer. Vaping,
+                often marketed as a safer alternative, has also been linked to respiratory complications, including
+                airway irritation, lung injury, and conditions such as EVALI (e-cigarette or vaping-associated lung
+                injury). As these issues continue to rise, there is a pressing need to better understand respiratory
+                mechanics and develop more effective disease management strategies.
+            </p>
+            <p>
+                A crucial component of respiratory function is airflow regulation, particularly during exhalation, where
+                various factors can disrupt normal breathing. One such disruption is expiratory occlusion, which occurs
+                when airflow is partially or completely blocked due to airway obstruction, increased resistance, or
+                external factors such as mechanical ventilation settings. This can result in air trapping, increased
+                respiratory effort, and complications like impaired gas exchange or respiratory distress. Expiratory
+                occlusion is commonly observed in conditions such as asthma, COPD, and ventilated patients, making it an
+                important area of study for assessing lung mechanics and improving patient outcomes.
             </p>
         </section>
 
@@ -59,7 +73,7 @@
                 chest. The participant remained seated, and EIT and circumference data were continuously collected after
                 calibration.
             </p>
-            <p>
+            <p style="text-indent: 0 !important;">
                 You can download the dataset
                 <a href="https://physionet.org/content/respiratory-dataset/1.0.0/" target="_blank">here</a>.
             </p>
@@ -67,11 +81,11 @@
 
         <section class="section-demographics">
             <h2>Participant Demographics</h2>
-            <p>
+            <p style="text-indent: 0 !important;">
                 Explore the demographics breakdown of the 80 participants.
             </p>
             <div class="demographics-controls">
-                <button id="view-gender">Gender</button>
+                <button id="view-gender" class="active">Gender</button>
                 <button id="view-asthma">Asthma Status</button>
                 <button id="view-smoking">Smoking History</button>
                 <button id="view-vaping">Vaping History</button>
@@ -82,10 +96,9 @@
 
         <section class="section-breathing">
             <h2>Respiratory Flow Visualization</h2>
-            <p>
+            <p style="text-indent: 0 !important;">
                 This visualization shows breathing patterns across different participant groups.
-                Positive values (above the center line) represent inhalation, while negative values represent
-                exhalation.
+                It also provides insights into how lung conditions affect airflow, volume, and breathe rate.
             </p>
             <div class="breathing-controls">
                 <div class="participant-selector">
@@ -98,7 +111,7 @@
                 <div class="group-selector">
                     <label>Compare Groups: </label>
                     <button class="group-btn" data-group="all">All</button>
-                    <button class="group-btn active" data-group="normal">Normal</button>
+                    <button class="group-btn active" data-group="normal">Healthy</button>
                     <button class="group-btn" data-group="asthma">Asthma</button>
                     <button class="group-btn" data-group="smoker">Smoker</button>
                     <button class="group-btn" data-group="vaper">Vaper</button>
@@ -106,7 +119,7 @@
 
                 <div class="speed-control">
                     <label for="speed-slider">Animation Speed: </label>
-                    <input type="range" id="speed-slider" min="0.5" max="5" step="0.5" value="1">
+                    <input type="range" id="speed-slider" min="0.5" max="5" step="0.1" value="1">
                     <span id="speed-value">1x</span>
                 </div>
             </div>
@@ -125,7 +138,7 @@
                 <div class="main-viz" id="breathing-viz"></div>
             </div>
 
-            <div class="stats-panel">
+            <div class="stats-panel" id="stats-panel">
                 <div class="stat-box">
                     <h3>Current Flow</h3>
                     <div id="current-flow">0.00 L/s</div>
@@ -146,7 +159,7 @@
 
             <h2>Insights</h2>
 
-            <p>
+            <p style="text-indent: 0 !important;">
                 Smokers and vapers tend to have greater variation in tidal volume because their breathing is
                 less
                 stable compared to healthy individuals. This is due to several factors:
@@ -178,7 +191,7 @@
                 <br><br>
 
                 In contrast, healthy individuals have clear, flexible airways, allowing them to breathe in a more
-                consistent and predictable way, leading to lower Vt variance.
+                consistent and predictable way, leading to lower tidal volume variance.
             </p>
         </section>
     </main>
@@ -199,6 +212,7 @@
     <!-- Scripts -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="demographics.js"></script>
+    <script src="animations.js"></script>
     <script src="breathing.js"></script>
 </body>
 
