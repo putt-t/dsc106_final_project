@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const blue = '#7ca1cc';
 
     // Averaged group data
-    const averagedGroupData = {};
+    let averagedGroupData = {};
     const timeWindow = 10;
     let currentTime = 0;
 
@@ -232,97 +232,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // console.log("Compute data averaging");
 
-            // Group subjects by their classification
-            const subjectsByGroup = {};
-            Object.keys(groupColors).forEach(group => {
-                subjectsByGroup[group] = [];
-                for (let id in subjectGroups) {
-                    if (subjectGroups[id] === group) {
-                        subjectsByGroup[group].push(id);
-                    }
-                }
-            });
-            // console.log("Subjects by group:", subjectsByGroup);
+            // Load average data for all groups
+            d3.csv("grouped_data.csv").then(groupData => {
+                Object.keys(groupColors).forEach(group => {
+                    dataGroup = groupData.filter(d => d.group === group);
+                    averagedGroupData[group] = dataGroup.map(d => ({
+                        time: +d["Time [s]"],
+                        flow: +d["Flow [L/s]"],
+                        volume: +d["V_tidal [L]"],
+                        chest: +d["Chest [mm]"],
+                        abdomen: +d["Abd [mm]"],
+                        ratio: +d["Chest [mm]"] / +d["Abd [mm]"]
+                    }));
 
-            // Load data for all subjects in each group
-            const groupPromises = Object.entries(subjectsByGroup).map(([group, subjectIds]) => {
-                // Load data for up to 5 subjects per group to keep performance reasonable
-                const sampleSubjects = subjectIds.slice(0, 5);
-
-                const subjectPromises = sampleSubjects.map(id => {
-                    return d3.csv(`Processed_Dataset/ProcessedData_Subject${id.toString().padStart(2, '0')}.csv`)
-                        .then(data => {
-                            return data.map(d => ({
-                                time: +d["Time [s]"],
-                                flow: +d["Flow [L/s]"],
-                                volume: Math.max(0, +d["V_tidal [L]"])
-                            })).filter(d => d.time <= 300); // Only get data <= 300 seconds
-                        })
-                        .catch(error => {
-                            console.error(`Error loading data for subject ${id}:`, error);
-                            return []; // Return empty data on error
-                        });
-                });
-
-                return Promise.all(subjectPromises).then(allSubjectData => {
-                    return {
-                        group: group,
-                        subjectData: allSubjectData
-                    };
+                    // sort by time
+                    averagedGroupData[group] = averagedGroupData[group].sort((a, b) => a.time - b.time);
+                    
+                    // filter out data > 300 seconds
+                    averagedGroupData[group] = averagedGroupData[group].filter(d => d.time >= 0 && d.time <= 300);
                 });
             });
-
-            Promise.all(groupPromises).then(groupData => {
-
-                // Update x domain
-                x.domain([currentTime, currentTime + timeWindow]);
-
-                // Update axes
-                xAxis.call(d3.axisBottom(x).ticks(10));
-                yAxis.call(d3.axisLeft(y).ticks(5));
-
-                // Create time-binned average data for each group
-                const binSize = 0.1; // 100ms bins
-
-                groupData.forEach(group => {
-                    const allData = group.subjectData;
-                    if (allData.length === 0) return;
-
-                    // Create bins from 0 to 300 seconds
-                    const bins = {};
-                    for (let t = 0; t <= 300; t += binSize) {
-                        bins[t.toFixed(1)] = {
-                            count: 0,
-                            totalVolume: 0
-                        };
-                    }
-
-                    // Sum up values in each bin
-                    allData.forEach(subjectData => {
-                        subjectData.forEach(point => {
-                            const binKey = (Math.floor(point.time / binSize) * binSize).toFixed(1);
-                            if (bins[binKey]) {
-                                bins[binKey].count++;
-                                bins[binKey].totalVolume += point.volume;
-                            }
-                        });
-                    });
-
-                    // Calculate averages and create data points
-                    averagedGroupData[group.group] = Object.entries(bins)
-                        .map(([time, values]) => ({
-                            time: parseFloat(time),
-                            volume: values.count > 0 ? values.totalVolume / values.count : 0
-                        }))
-                        .filter(d => d.volume > 0) // Filter out empty bins
-                        .sort((a, b) => a.time - b.time); // Sort by time
-                });
-
-                // console.log("Averaged group data created:", Object.keys(averagedGroupData));
-            }).catch(error => {
-                console.error("Error loading data for all groups:", error);
-            });
-
         })
         .catch(error => {
             console.error("Error loading subject info:", error);
