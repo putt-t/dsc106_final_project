@@ -155,6 +155,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     gChest.append("text")
         .attr("class", "y-label-chest")
+        .attr("class", "y-label")
         .attr("transform", "rotate(-90)")
         .attr("x", -innerGraphHeight / 2)
         .attr("y", -80)
@@ -170,6 +171,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     gAbd.append("text")
         .attr("class", "y-label-abd")
+        .attr("class", "y-label")
         .attr("transform", "rotate(-90)")
         .attr("x", -innerGraphHeight / 2)
         .attr("y", -80)
