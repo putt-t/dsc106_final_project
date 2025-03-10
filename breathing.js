@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .range([0, innerWidth]);
 
     const y = d3.scaleLinear()
-        .domain([0, 4])
+        .domain([0, 10])
         .range([innerHeight, 0]);
 
     // Add axes
@@ -575,27 +575,6 @@ document.addEventListener('DOMContentLoaded', function () {
     speedSlider.addEventListener("input", function () {
         animationSpeed = parseFloat(this.value);
         speedValue.textContent = `${animationSpeed}x`;
-
-        // if (selectedGroup === "all") {
-        //     // Show all groups
-        //     path.attr("opacity", 0); // Hide single path
-        //     breathIndicator.attr("opacity", 0); // Hide indicator
-        //     areaPath.attr("opacity", 0); // Hide volume area
-        //     areaPathAbove.attr("opacity", 0); // Hide flow areas
-        //     areaPathBelow.attr("opacity", 0);
-
-        //     animateAllGroups();
-        // } else {
-        //     // Show single group
-        //     path.attr("opacity", 1);
-        //     breathIndicator.attr("opacity", 1);
-        //     areaPath.attr("opacity", 0.3);
-        //     areaPathAbove.attr("opacity", 0); // Hide flow areas
-        //     areaPathBelow.attr("opacity", 0);
-
-        //     const currentSubject = document.getElementById("participant-select").value;
-        //     animateBreathing(currentSubject);
-        // }
     });
 
     // Stats elements
@@ -617,6 +596,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
         }
+
+        // Change Y scale to [0, 4] for flow visualization
+        y.domain([0, 4]);
+        yAxis.call(d3.axisLeft(y).ticks(5));
 
         // Animation loop
         function animate() {
@@ -656,12 +639,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 statsPanel.classList.add('stats-hidden');
             }, 500); // Match the transition duration (500ms)
 
+            // Reset stats display in multi-group mode
+            let circleVizCont = document.getElementById('circle-viz-container');
+            circleVizCont.style.opacity = 0; // Start fade out
 
-            // currentFlowElement.textContent = "Average";
-            // currentFlowElement.style.color = '#2c3e50';
-            // currentVolumeElement.textContent = "Average";
-            // currentVolumeElement.style.color = '#2c3e50';
-            // breathingRateElement.textContent = "Average";
+            // Wait for transition to complete before hiding
+            setTimeout(() => {
+                circleVizCont.classList.add('circle-viz-hidden');
+            }, 500); // Match the transition duration (500ms)
 
             // Advance time based on animation speed
             currentTime += 0.02 * animationSpeed;
@@ -687,18 +672,9 @@ document.addEventListener('DOMContentLoaded', function () {
             cancelAnimationFrame(animationFrameId);
         }
 
-        // Reset breath tracking
-        let statsPanel = document.getElementById('stats-panel');
-
-        if (statsPanel.classList.contains('stats-hidden')) {
-            statsPanel.style.opacity = 0; // Start fade in
-
-            // Wait for transition to complete before hiding
-            setTimeout(() => {
-                statsPanel.classList.remove('stats-hidden');
-                statsPanel.style.opacity = 1; // Start fade in
-            }, 500); // Match the transition duration (500ms)
-        }
+        // Change Y scale to [0, 10] for flow visualization
+        y.domain([0, 10]);
+        yAxis.call(d3.axisLeft(y).ticks(5));
         
         breathCount = 0;
         lastBreathTime = 0;
@@ -707,6 +683,123 @@ document.addEventListener('DOMContentLoaded', function () {
         breathingRateElement.textContent = "-- breaths/min";
         let frameCount = 0;
 
+        // Setup lung visualization
+        const lung_options = {
+            width: 500,   // Adjusted for better fit
+            height: 300,  // Adjusted for better fit
+            baseRadius: 60,  // Base size of lung
+            maxRadius: 120,  // Maximum size of lung
+            minRadius: 40,   // Minimum size of lung
+            inhalationColor: blue,
+            exhalationColor: red,
+            transitionSpeed: 300  // ms for smooth transitions
+        };
+
+        const chest_options = {
+            width : 500,
+            height : 300,
+            baseRadiusChest: 60,
+            baseRadiusAbdomen: 60,
+            transitionSpeed: 300
+        }
+
+        d3.select("#lung-viz").selectAll("svg").remove();
+        d3.select("#chest-viz").selectAll("svg").remove();
+
+        // Clear and initialize lung visualization
+        const lung_svg = d3.select("#lung-viz")
+            .append("svg")
+            .attr("width", "100%")
+            .attr("height", "100%")
+            .attr("viewBox", `0 0 ${lung_options.width} ${lung_options.height}`)
+            .attr("preserveAspectRatio", "xMidYMid meet");
+        
+        const chest_svg = d3.select("#chest-viz")
+            .append("svg")
+            .attr("width", "100%")
+            .attr("height", "100%")
+            .attr("viewBox", `0 0 ${chest_options.width} ${chest_options.height}`)
+            .attr("preserveAspectRatio", "xMidYMid meet");
+
+        lung_svg.selectAll("svg").remove();
+        chest_svg.selectAll("svg").remove();
+
+        lung_svg.append("text")
+            .attr("class", "viz-title")
+            .attr("x", lung_options.width / 2)
+            .attr("y", 25)
+            .attr("text-anchor", "middle")
+            .text("Lung Flow Visualization");
+
+        chest_svg.append("text")
+            .attr("class", "viz-title")
+            .attr("x", chest_options.width / 2)
+            .attr("y", 25)
+            .attr("text-anchor", "middle")
+            .text("Chest and Abdomen Movement");
+
+        // Create lung group
+        const lung = lung_svg.append("g")
+            .attr("transform", `translate(${lung_options.width / 2}, ${lung_options.height / 2})`);
+
+        const chest = chest_svg.append("g")
+            .attr("transform", `translate(${chest_options.width / 2}, ${chest_options.height / 2})`);
+
+        // Add lung circle
+        const circle = lung.append("circle")
+            .attr("r", lung_options.baseRadius)
+            .attr("fill", lung_options.inhalationColor)
+            .attr("cy", +20)
+            .attr("opacity", 0.6)
+            .attr("stroke", "#2980b9")
+            .attr("stroke-width", 2);
+
+        // Add chest and abdomen circles
+        const abdomenCircle = chest.append("circle")
+            .attr("r", chest_options.baseRadiusAbdomen)
+            .attr("cy", +70)
+            .attr("fill", red)
+            .attr("opacity", 0.6)
+            .attr("stroke", "#c0392b")
+            .attr("stroke-width", 2);
+
+        const chestCircle = chest.append("circle")
+            .attr("r", chest_options.baseRadiusChest)
+            .attr("cy", -30)
+            .attr("fill", blue)
+            .attr("opacity", 0.6)
+            .attr("stroke", "#2980b9")
+            .attr("stroke-width", 2);
+
+
+        // Reset breath tracking
+        let statsPanel = document.getElementById('stats-panel');
+        
+        // Show stats panel if hidden
+        if (statsPanel.classList.contains('stats-hidden')) {
+            statsPanel.style.opacity = 0; // Start fade in
+
+            // Wait for transition to complete before showing
+            setTimeout(() => {
+                statsPanel.classList.remove('stats-hidden');
+                statsPanel.style.opacity = 1; // Start fade in
+            }, 500); // Match the transition duration (500ms)
+        }
+
+        // Reset breath tracking
+        let circleVizCont = document.getElementById('circle-viz-container');
+        
+        // Show stats panel if hidden
+        if (circleVizCont.classList.contains('circle-viz-hidden')) {
+            circleVizCont.style.opacity = 0; // Start fade in
+
+            // Wait for transition to complete before showing
+            setTimeout(() => {
+                circleVizCont.classList.remove('circle-viz-hidden');
+                circleVizCont.style.opacity = 1; // Start fade in
+            }, 500); // Match the transition duration (500ms)
+        }
+
         // Load data for the selected subject
         d3.csv(`Processed_Dataset/ProcessedData_Subject${subjectId.toString().padStart(2, '0')}.csv`).then(data => {
             // Process data
@@ -714,7 +807,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 time: +d["Time [s]"],
                 flow: +d["Flow [L/s]"],
                 pressure: +d["Pressure [cmH2O]"],
-                volume: Math.max(0, +d["V_tidal [L]"]),  // Use Math.max to prevent negative values
+                volume: Math.max(0, +d["V_tidal [L]"]),
                 chest: +d["Chest [mm]"],
                 abdomen: +d["Abd [mm]"]
             }));
@@ -723,7 +816,60 @@ document.addEventListener('DOMContentLoaded', function () {
             const maxTime = 300;
             processedData = processedData.filter(d => d.time <= maxTime);
 
-            // Set up time window (10 seconds)
+            // Find max flow for scaling
+            const maxFlow = d3.max(processedData, d => Math.abs(d.flow));
+
+            // Find min and max values for chest and abdomen for proper scaling
+            const chestMin = d3.min(processedData, d => d.chest);
+            const chestMax = d3.max(processedData, d => d.chest);
+            const abdomenMin = d3.min(processedData, d => d.abdomen);
+            const abdomenMax = d3.max(processedData, d => d.abdomen);
+
+            // Function to scale flow to radius
+            const flowToRadius = d3.scaleLinear()
+                .domain([-maxFlow, maxFlow])
+                .range([lung_options.minRadius, lung_options.maxRadius])
+                .clamp(true);
+
+            // // Functions to scale chest and abdomen measurements to radii
+            // const chestToRadius = d3.scaleLinear()
+            //     .domain([chestMin, chestMax])
+            //     .range([chest_options.baseRadiusChest * 0.8, chest_options.baseRadiusChest * 1.2])
+            //     .clamp(true);
+
+            // const abdomenToRadius = d3.scaleLinear()
+            //     .domain([abdomenMin, abdomenMax])
+            //     .range([chest_options.baseRadiusAbdomen * 0.8, chest_options.baseRadiusAbdomen * 1.2])
+            //     .clamp(true);
+
+            // Calculate mean values as baselines
+            const chestMean = d3.mean(processedData, d => d.chest);
+            const abdomenMean = d3.mean(processedData, d => d.abdomen);
+
+            // Calculate typical deviation (difference between max and min)
+            const chestDeviation = (chestMax - chestMin) / 2;
+            const abdomenDeviation = (abdomenMax - abdomenMin) / 2;
+
+            // Create more dramatic scaling functions that amplify deviations from the mean
+            const amplificationFactor = 0.2; // Increase this to make changes more dramatic
+
+            const chestToRadius = (chestValue) => {
+                // Calculate how far from mean, as a proportion of typical deviation
+                const deviationFromMean = (chestValue - chestMean) / chestDeviation;
+                
+                // Amplify this deviation and apply to base radius
+                return chest_options.baseRadiusChest * (1 + deviationFromMean * amplificationFactor);
+            };
+
+            const abdomenToRadius = (abdomenValue) => {
+                // Calculate how far from mean, as a proportion of typical deviation
+                const deviationFromMean = (abdomenValue - abdomenMean) / abdomenDeviation;
+                
+                // Amplify this deviation and apply to base radius
+                return chest_options.baseRadiusAbdomen * (1 + deviationFromMean * amplificationFactor);
+            };
+
+            // Set up time window
             const timeWindow = 10;
             let currentTime = 0;
 
@@ -760,9 +906,67 @@ document.addEventListener('DOMContentLoaded', function () {
                 areaPath.datum(visibleData)
                     .attr("d", area);
 
-                // Update breathing indicator and stats (if data available)
+                // Update visualizations with the latest data point
                 if (visibleData.length > 0) {
                     const latestPoint = visibleData[visibleData.length - 1];
+                    
+                    // Update lung circle based on flow
+                    const newRadius = flowToRadius(latestPoint.flow);
+                    let isInhaling = latestPoint.flow > 0;
+                    
+                    // Apply smooth transition for lung visualization
+                    circle.transition()
+                        .duration(lung_options.transitionSpeed * (1/animationSpeed)) // Adjust transition speed based on animation speed
+                        .ease(d3.easeCubicOut)
+                        .attr("r", newRadius)
+                        .attr("fill", isInhaling ? lung_options.inhalationColor : lung_options.exhalationColor);
+
+                    // Update chest circle based on chest measurement
+                    const newChestRadius = chestToRadius(latestPoint.chest);
+                    chestCircle.transition()
+                        .duration(chest_options.transitionSpeed * (1/animationSpeed))
+                        .ease(d3.easeCubicOut)
+                        .attr("r", newChestRadius);
+
+                    // Update abdomen circle based on abdomen measurement
+                    const newAbdomenRadius = abdomenToRadius(latestPoint.abdomen);
+                    abdomenCircle.transition()
+                        .duration(chest_options.transitionSpeed * (1/animationSpeed))
+                        .ease(d3.easeCubicOut)
+                        .attr("r", newAbdomenRadius);
+
+                    // Add indicators to show the measurement values
+                    // Update or create text elements to display current values
+                    d3.select("#chest-value").remove();
+                    chest.append("text")
+                        .attr("id", "chest-value")
+                        .attr("y", -30)
+                        .attr("text-anchor", "middle")
+                        .attr("fill", "white")
+                        .attr("font-size", "14px")
+                        .text(`${latestPoint.chest.toFixed(1)} mm`);
+                        
+                    d3.select("#abdomen-value").remove();
+                    chest.append("text")
+                        .attr("id", "abdomen-value")
+                        .attr("y", 70)
+                        .attr("text-anchor", "middle")
+                        .attr("fill", "white")
+                        .attr("font-size", "14px")
+                        .text(`${latestPoint.abdomen.toFixed(1)} mm`);
+                    
+                    // Update breathing indicator and stats
+                    breathIndicator
+                        .attr("cx", x(latestPoint.time))
+                        .attr("cy", y(latestPoint.volume))
+                        .attr("r", 8);
+
+                    // Update stats display
+                    if (frameCount % 3 === 0) {
+                        currentFlowElement.textContent = `${latestPoint.flow.toFixed(2)} L/s`;
+                        currentFlowElement.style.color = latestPoint.flow > 0 ? blue : red;
+                        currentVolumeElement.textContent = `${latestPoint.volume.toFixed(2)} L`;
+                    }
 
                     // Update breathing indicator to show position on the volume curve
                     breathIndicator
@@ -813,13 +1017,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
 
+                // Continue with the rest of the animation function...
                 // Advance time based on animation speed
                 currentTime += 0.02 * animationSpeed;
 
-                // Update x domain
+                // Update x domain and axis
                 x.domain([currentTime, currentTime + timeWindow]);
-
-                // Update x-axis with transition
                 xAxis.call(d3.axisBottom(x).ticks(10));
 
                 // Continue animation
@@ -831,16 +1034,7 @@ document.addEventListener('DOMContentLoaded', function () {
             animate();
         }).catch(error => {
             console.error("Error loading data:", error);
-            // Display error message in the visualization area
-            d3.select("#breathing-viz")
-                .append("div")
-                .attr("class", "error-message")
-                .style("color", "red")
-                .style("text-align", "center")
-                .style("padding", "20px")
-                .html(`<p>Error loading data for Subject ${subjectId}.</p>
-                       <p>Please make sure the file exists and is correctly formatted.</p>
-                       <p>Technical details: ${error.message}</p>`);
+            // Display error message
         });
     }
 

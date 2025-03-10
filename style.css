@@ -129,11 +129,24 @@ section a:visited {
     margin-top: 1.5rem;
 }
 
-.circle-viz-container {
+#circle-viz-container {
     display: grid;
-    grid-template-columns: auto auto;
+    grid-template-columns: 1fr 1fr;
     grid-gap: 1.5rem;
     margin-top: 1.5rem;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+
+.circle-viz-hidden {
+    display: none !important;
+}
+
+#lung-viz, #chest-viz {
+    background-color: white;
+    border: 1px solid var(--light-gray);
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* Two different grid setups */
