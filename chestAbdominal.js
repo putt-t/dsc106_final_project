@@ -335,6 +335,28 @@ document.addEventListener('DOMContentLoaded', function () {
         .attr("id", "current-ratio")
         .text("0.00");
 
+    const groupStatsContainer = d3.select(".section-chest-abdominal")
+        .append("div")
+        .attr("class", "stats-panel")
+        .style("display", "none")
+        .style("justify-content", "space-between")
+        .style("margin-top", "1rem")
+        .style("gap", "1rem");
+
+    Object.entries(groupColors).forEach(([group, color]) => {
+        const groupStat = groupStatsContainer.append("div")
+            .attr("class", "stat-box");
+
+        groupStat.append("h3")
+            .text(group.charAt(0).toUpperCase() + group.slice(1))
+            .style("color", color);
+
+        groupStat.append("div")
+            .attr("id", `${group}-ratio`)
+            .text("0.00")
+            .style("color", color);
+    });
+
     let animationFrameId;
     let subjectGroups = {};
 
@@ -378,6 +400,22 @@ document.addEventListener('DOMContentLoaded', function () {
                 .html(`<p>Error loading subject data: ${error.message}</p>`);
         });
 
+    const comparisonContainer = d3.select(".section-chest-abdominal")
+        .insert("div", "#chest-vis")
+        .attr("class", "comparison-container")
+        .style("display", "none")
+        .style("margin-top", "1rem");
+
+    comparisonContainer.append("div")
+        .attr("id", "comparison-vis");
+
+    const svgComparison = d3.select("#comparison-vis")
+        .append("svg")
+        .attr("width", "100%")
+        .attr("height", graphHeight)
+        .attr("viewBox", `0 0 ${width} ${graphHeight}`)
+        .attr("preserveAspectRatio", "xMidYMid meet");
+
     function populateParticipantSelect() {
         participantSelect.append("option")
             .attr("value", "all")
@@ -397,8 +435,10 @@ document.addEventListener('DOMContentLoaded', function () {
             selectedParticipant = this.value;
 
             if (selectedParticipant === "all") {
+                showComparisonViz();
                 animateAllGroups();
             } else {
+                showIndividualViz();
                 animateParticipant(selectedParticipant);
             }
         });
@@ -633,6 +673,32 @@ document.addEventListener('DOMContentLoaded', function () {
         gChest.select(".y-label-chest").text("Chest Circumference (mm)");
     }
 
+    function showIndividualViz() {
+        d3.select("#chest-vis").style("display", "block");
+        d3.select("#abdominal-vis").style("display", "block");
+        comparisonContainer.style("display", "none");
+
+        statsContainer.style("display", "flex");
+        d3.select("#current-chest").style("display", "block");
+        d3.select("#current-abd").style("display", "block");
+        d3.select("#current-ratio").style("display", "block");
+
+        chestStat.select("h3").text("Chest Circumference");
+        abdStat.select("h3").text("Abdominal Circumference");
+        ratioStat.select("h3").text("Chest/Abd Ratio");
+
+        groupStatsContainer.style("display", "none");
+    }
+
+    function showComparisonViz() {
+        d3.select("#chest-vis").style("display", "none");
+        d3.select("#abdominal-vis").style("display", "none");
+        comparisonContainer.style("display", "block");
+
+        statsContainer.style("display", "none");
+        groupStatsContainer.style("display", "flex");
+    }
+
     function animateAllGroups() {
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
@@ -640,40 +706,72 @@ document.addEventListener('DOMContentLoaded', function () {
 
         currentTime = 0;
 
-        individualLegend.style("opacity", 0);
-        groupLegend.style("opacity", 1);
-        chestPath.attr("opacity", 0);
-        abdPath.attr("opacity", 0);
-        chestIndicator.attr("opacity", 0);
-        abdIndicator.attr("opacity", 0);
+        svgComparison.selectAll("*").remove();
 
-        d3.select(".section-chest-abdominal h2").text("Chest/Abdominal Ratio Comparison Across Groups");
+        const gComparison = svgComparison.append("g")
+            .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-        d3.select("#abdominal-vis")
-            .style("opacity", 0)
-            .style("height", "0px")
-            .style("overflow", "hidden");
+        svgComparison.append("text")
+            .attr("class", "viz-title")
+            .attr("x", width / 2)
+            .attr("y", 25)
+            .attr("text-anchor", "middle")
+            .text("Chest/Abdominal Ratio Comparison Across Groups");
 
-        d3.select("#chest-vis")
-            .style("opacity", 1)
-            .style("height", "600px")
-            .style("margin-bottom", "0");
-
-        Object.values(groupPaths).forEach(paths => {
-            paths.chest.attr("opacity", 0);
-            paths.abd.attr("opacity", 0);
-            paths.ratio.attr("opacity", 1);
+        const comparisonPaths = {};
+        Object.keys(groupColors).forEach(group => {
+            comparisonPaths[group] = gComparison.append("path")
+                .attr("class", `ratio-line ${group}-ratio-line`)
+                .attr("fill", "none")
+                .attr("stroke", groupColors[group])
+                .attr("stroke-width", 3);
         });
 
-        statsContainer.style("display", "none");
-        svgChest.selectAll(".subject-info").remove();
-        svgChest.append("text")
-            .attr("class", "subject-info")
-            .attr("x", 10)
-            .attr("y", 20)
-            .text("Group Comparison (Chest/Abd Ratio)")
-            .style("font-size", "14px")
-            .style("font-weight", "bold");
+        const xAxis = gComparison.append("g")
+            .attr("class", "x-axis")
+            .attr("transform", `translate(0, ${innerGraphHeight})`);
+
+        const yAxis = gComparison.append("g")
+            .attr("class", "y-axis");
+
+        gComparison.append("text")
+            .attr("class", "x-label")
+            .attr("x", innerWidth / 2)
+            .attr("y", innerGraphHeight + 40)
+            .attr("text-anchor", "middle")
+            .text("Time (s)");
+
+        gComparison.append("text")
+            .attr("class", "y-label")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -innerGraphHeight / 2)
+            .attr("y", -60)
+            .attr("text-anchor", "middle")
+            .text("Chest/Abd Ratio");
+
+        const comparisonLegend = svgComparison.append("g")
+            .attr("class", "legend group-legend")
+            .attr("transform", `translate(${width - margin.right + 20}, ${margin.top + 20})`);
+
+        let legendY = 0;
+        Object.entries(groupColors).forEach(([group, color]) => {
+            comparisonLegend.append("line")
+                .attr("x1", 0)
+                .attr("y1", legendY + 7.5)
+                .attr("x2", 15)
+                .attr("y2", legendY + 7.5)
+                .attr("stroke", color)
+                .attr("stroke-width", 3);
+
+            let displayName = group.charAt(0).toUpperCase() + group.slice(1);
+            comparisonLegend.append("text")
+                .attr("x", 25)
+                .attr("y", legendY + 12.5)
+                .text(displayName)
+                .style("font-size", "14px");
+
+            legendY += 25;
+        });
 
         let allRatioValues = [];
         Object.values(averagedGroupData).forEach(groupData => {
@@ -687,20 +785,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const ratioExtent = d3.extent(allRatioValues);
         const ratioMargin = (ratioExtent[1] - ratioExtent[0]) * 0.1;
-        const ratioMin = Math.max(0, ratioExtent[0] - ratioMargin);
-        const ratioMax = ratioExtent[1] + ratioMargin;
-
-        yRatio.domain([ratioMin, ratioMax]);
-
-        gChest.select(".y-label-chest")
-            .text("Chest/Abd Ratio");
-
-        gAbd.select(".y-label-abd")
-            .style("opacity", 0);
-
-        xAxisChest.call(d3.axisBottom(x).ticks(10));
-        yAxisChest.call(d3.axisLeft(yRatio).ticks(5));
-        yAxisAbd.style("opacity", 0);
+        yRatio.domain([
+            Math.max(0, ratioExtent[0] - ratioMargin),
+            ratioExtent[1] + ratioMargin
+        ]);
 
         function animate() {
             let continueAnimation = false;
@@ -709,15 +797,22 @@ document.addEventListener('DOMContentLoaded', function () {
                 const visibleData = data.filter(d =>
                     d.time >= currentTime && d.time <= currentTime + timeWindow
                 );
+
                 if (visibleData.length > 0) {
                     continueAnimation = true;
                     const ratioData = visibleData.map(d => ({
                         time: d.time,
                         ratio: d.abd !== 0 ? d.chest / d.abd : 0
                     }));
-                    groupPaths[group].ratio
+
+                    comparisonPaths[group]
                         .datum(ratioData)
                         .attr("d", ratioLine);
+
+                    const latestPoint = visibleData[visibleData.length - 1];
+                    const ratio = latestPoint.chest / latestPoint.abd;
+                    d3.select(`#${group}-ratio`)
+                        .text(ratio.toFixed(4));
                 }
             });
 
@@ -728,13 +823,19 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             currentTime += 0.02 * animationSpeed;
-
             x.domain([currentTime, currentTime + timeWindow]);
-            xAxisChest.call(d3.axisBottom(x).ticks(10));
+            xAxis.call(d3.axisBottom(x).ticks(10));
+            yAxis.call(d3.axisLeft(yRatio).ticks(5));
 
             animationFrameId = requestAnimationFrame(animate);
         }
 
+        xAxis.call(d3.axisBottom(x).ticks(10));
+        yAxis.call(d3.axisLeft(yRatio).ticks(5));
+
         animate();
     }
+
+    showIndividualViz();
+    animateParticipant(selectedParticipant);
 });
