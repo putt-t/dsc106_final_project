@@ -1,37 +1,30 @@
-// Chest vs. Abdominal Motion Visualization
 document.addEventListener('DOMContentLoaded', function () {
-    // Set up dimensions - INCREASED HEIGHT for larger graphs
     const width = 900;
-    const height = 600; // Increased from 500 to 600
-    const margin = { top: 50, right: 100, bottom: 50, left: 100 }; // Increased left margin to 100
+    const height = 800;
+    const margin = { top: 50, right: 200, bottom: 50, left: 100 };
     const innerWidth = width - margin.left - margin.right;
-    const innerHeight = height - margin.top - margin.bottom;
 
-    // Group colors
     const groupColors = {
         healthy: '#6c90b0',
         asthma: '#e57a77',
-        smoker: "#9b59b6", // purple
-        vaper: "#f1c40f"   // yellow
+        smoker: "#9b59b6",
+        vaper: "#f1c40f"
     };
 
-    // Averaged group data
     const averagedGroupData = {};
     const timeWindow = 10;
     let currentTime = 0;
     let animationSpeed = 1;
-    let selectedParticipant = "1"; // Default to first participant
+    let selectedParticipant = "1";
 
-    // Create controls container BEFORE the visualization divs
     const controlsContainer = d3.select(".section-chest-abdominal")
-        .insert("div", "#chest-vis") // Insert before the visualization divs
+        .insert("div", "#chest-vis")
         .attr("class", "controls-container")
         .style("margin-bottom", "1.5rem")
         .style("padding", "1rem")
         .style("background-color", "var(--light-gray)")
         .style("border-radius", "8px");
 
-    // Create participant selector
     const participantSelector = controlsContainer.append("div")
         .attr("class", "participant-selector")
         .style("margin", "0.5rem");
@@ -54,7 +47,6 @@ document.addEventListener('DOMContentLoaded', function () {
         .style("color", "white")
         .style("cursor", "pointer");
 
-    // Set up speed control
     const speedControl = controlsContainer.append("div")
         .attr("class", "speed-control")
         .style("margin", "0.5rem")
@@ -89,29 +81,25 @@ document.addEventListener('DOMContentLoaded', function () {
         .attr("id", "ca-speed-value")
         .text("1x");
 
-    // Add more vertical space between visualizations
-    d3.select("#chest-vis").style("margin-bottom", "40px"); // Add 40px space between graphs
+    d3.select("#chest-vis").style("margin-bottom", "40px");
 
-    // Set up dimensions - adjust height for two graphs with more separation
-    const graphHeight = Math.floor(height / 2); // Use full half of total height for each graph
+    const graphHeight = Math.floor(height / 2);
     const innerGraphHeight = graphHeight - margin.top - margin.bottom;
 
-    // Create SVG elements for chest and abdominal - increased height
     const svgChest = d3.select("#chest-vis")
         .append("svg")
         .attr("width", "100%")
-        .attr("height", graphHeight) // Explicit height in pixels for larger graphs
-        .attr("viewBox", `0 0 ${width} ${graphHeight}`) // Adjust height for each graph
+        .attr("height", graphHeight)
+        .attr("viewBox", `0 0 ${width} ${graphHeight}`)
         .attr("preserveAspectRatio", "xMidYMid meet");
 
     const svgAbd = d3.select("#abdominal-vis")
         .append("svg")
         .attr("width", "100%")
-        .attr("height", graphHeight) // Explicit height in pixels for larger graphs
-        .attr("viewBox", `0 0 ${width} ${graphHeight}`) // Adjust height for each graph
+        .attr("height", graphHeight)
+        .attr("viewBox", `0 0 ${width} ${graphHeight}`)
         .attr("preserveAspectRatio", "xMidYMid meet");
 
-    // Add titles to each graph
     svgChest.append("text")
         .attr("class", "viz-title")
         .attr("x", width / 2)
@@ -126,14 +114,12 @@ document.addEventListener('DOMContentLoaded', function () {
         .attr("text-anchor", "middle")
         .text("Abdominal Motion During Breathing");
 
-    // Create groups for the two visualizations
     const gChest = svgChest.append("g")
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
     const gAbd = svgAbd.append("g")
         .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-    // Set up scales
     const x = d3.scaleLinear()
         .range([0, innerWidth]);
 
@@ -146,7 +132,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const yRatio = d3.scaleLinear()
         .range([innerGraphHeight, 0]);
 
-    // Add axes
     const xAxisChest = gChest.append("g")
         .attr("class", "x-axis")
         .attr("transform", `translate(0, ${innerGraphHeight})`);
@@ -161,7 +146,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const yAxisAbd = gAbd.append("g")
         .attr("class", "y-axis-abd");
 
-    // Add axis labels
     gChest.append("text")
         .attr("class", "x-label")
         .attr("x", innerWidth / 2)
@@ -173,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function () {
         .attr("class", "y-label-chest")
         .attr("transform", "rotate(-90)")
         .attr("x", -innerGraphHeight / 2)
-        .attr("y", -80) // Increased from -60 to -80 to avoid overlap
+        .attr("y", -80)
         .attr("text-anchor", "middle")
         .text("Chest Circumference (mm)");
 
@@ -188,11 +172,10 @@ document.addEventListener('DOMContentLoaded', function () {
         .attr("class", "y-label-abd")
         .attr("transform", "rotate(-90)")
         .attr("x", -innerGraphHeight / 2)
-        .attr("y", -80) // Increased from -60 to -80 to avoid overlap
+        .attr("y", -80)
         .attr("text-anchor", "middle")
         .text("Abdominal Circumference (mm)");
 
-    // Create line generators
     const chestLine = d3.line()
         .x(d => x(d.time))
         .y(d => yChest(d.chest))
@@ -208,7 +191,6 @@ document.addEventListener('DOMContentLoaded', function () {
         .y(d => yRatio(d.ratio))
         .curve(d3.curveBasis);
 
-    // Create paths for individual participant
     const chestPath = gChest.append("path")
         .attr("class", "chest-line")
         .attr("fill", "none")
@@ -221,7 +203,6 @@ document.addEventListener('DOMContentLoaded', function () {
         .attr("stroke", "#e57a77")
         .attr("stroke-width", 3);
 
-    // Create paths for group averages
     const groupPaths = {};
     Object.keys(groupColors).forEach(group => {
         groupPaths[group] = {
@@ -230,24 +211,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 .attr("fill", "none")
                 .attr("stroke", groupColors[group])
                 .attr("stroke-width", 3)
-                .attr("opacity", 0), // Initially hidden
+                .attr("opacity", 0),
             abd: gAbd.append("path")
                 .attr("class", `abd-line ${group}-abd-line`)
                 .attr("fill", "none")
                 .attr("stroke", groupColors[group])
                 .attr("stroke-width", 3)
-                .attr("stroke-dasharray", "5,5") // Dashed line for abdominal
-                .attr("opacity", 0), // Initially hidden
+                .attr("stroke-dasharray", "5,5")
+                .attr("opacity", 0),
             ratio: gChest.append("path")
                 .attr("class", `ratio-line ${group}-ratio-line`)
                 .attr("fill", "none")
                 .attr("stroke", groupColors[group])
                 .attr("stroke-width", 3)
-                .attr("opacity", 0) // Initially hidden
+                .attr("opacity", 0)
         };
     });
 
-    // Create indicators for current position
     const chestIndicator = gChest.append("circle")
         .attr("class", "chest-indicator")
         .attr("r", 8)
@@ -258,12 +238,10 @@ document.addEventListener('DOMContentLoaded', function () {
         .attr("r", 8)
         .attr("fill", "#e57a77");
 
-    // Add legend for individual participant view
     const individualLegend = svgChest.append("g")
         .attr("class", "legend individual-legend")
-        .attr("transform", `translate(${innerWidth - 180 + margin.left}, ${graphHeight - 80})`);
+        .attr("transform", `translate(${width - margin.right + 20}, ${margin.top + 20})`);
 
-    // Chest legend item
     individualLegend.append("rect")
         .attr("x", 0)
         .attr("y", 0)
@@ -277,7 +255,6 @@ document.addEventListener('DOMContentLoaded', function () {
         .text("Chest Motion")
         .style("font-size", "14px");
 
-    // Abdominal legend item
     individualLegend.append("rect")
         .attr("x", 0)
         .attr("y", 25)
@@ -291,16 +268,13 @@ document.addEventListener('DOMContentLoaded', function () {
         .text("Abdominal Motion")
         .style("font-size", "14px");
 
-    // Add legend for group view
     const groupLegend = svgChest.append("g")
         .attr("class", "legend group-legend")
-        .attr("transform", `translate(${innerWidth - 180 + margin.left}, ${graphHeight - 120})`)
-        .style("opacity", 0); // Initially hidden
+        .attr("transform", `translate(${width - margin.right + 20}, ${margin.top + 20})`)
+        .style("opacity", 0);
 
-    // Add group legend items
     let legendY = 0;
     Object.entries(groupColors).forEach(([group, color]) => {
-        // Solid line for chest
         groupLegend.append("line")
             .attr("x1", 0)
             .attr("y1", legendY + 7.5)
@@ -309,7 +283,6 @@ document.addEventListener('DOMContentLoaded', function () {
             .attr("stroke", color)
             .attr("stroke-width", 3);
 
-        // Group name
         let displayName = group.charAt(0).toUpperCase() + group.slice(1);
         if (displayName === "Healthy") displayName = "Healthy";
 
@@ -322,7 +295,6 @@ document.addEventListener('DOMContentLoaded', function () {
         legendY += 25;
     });
 
-    // Add stats display
     const statsContainer = d3.select(".section-chest-abdominal")
         .append("div")
         .attr("class", "stats-panel")
@@ -361,14 +333,11 @@ document.addEventListener('DOMContentLoaded', function () {
         .attr("id", "current-ratio")
         .text("0.00");
 
-    // Animation variables
     let animationFrameId;
     let subjectGroups = {};
 
-    // Load subject info
     d3.csv("subject-info.csv")
         .then(subjectData => {
-            // Parse subject classifications
             subjectData.forEach(subject => {
                 const subjectId = parseInt(subject["Subject Number"], 10);
                 if (isNaN(subjectId)) return;
@@ -389,14 +358,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     group = "unknown";
                 }
 
-                // Store group for this subject
                 subjectGroups[subjectId] = group;
             });
 
-            // Populate participant selector
             populateParticipantSelect();
 
-            // Compute averaged data for each group
             computeGroupAverages();
         })
         .catch(error => {
@@ -410,14 +376,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 .html(`<p>Error loading subject data: ${error.message}</p>`);
         });
 
-    // Populate participant selector
     function populateParticipantSelect() {
-        // Add "All Groups" option
         participantSelect.append("option")
             .attr("value", "all")
             .text("All Groups (Comparison)");
 
-        // Add individual participants
         for (let i = 1; i <= 80; i++) {
             const group = subjectGroups[i] || "unknown";
             const groupName = group.charAt(0).toUpperCase() + group.slice(1);
@@ -428,7 +391,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 .attr("data-group", group);
         }
 
-        // Set up change listener
         participantSelect.on("change", function () {
             selectedParticipant = this.value;
 
@@ -439,14 +401,11 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // Initialize with first participant
         participantSelect.property("selectedIndex", 1);
         animateParticipant(selectedParticipant);
     }
 
-    // Compute averaged data for each group
     function computeGroupAverages() {
-        // Group subjects by classification
         const subjectsByGroup = {};
         Object.keys(groupColors).forEach(group => {
             subjectsByGroup[group] = [];
@@ -457,9 +416,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // Load data for all subjects in each group (up to 5 per group for performance)
         const groupPromises = Object.entries(subjectsByGroup).map(([group, subjectIds]) => {
-            // Sample up to 5 subjects per group
             const sampleSubjects = subjectIds.slice(0, 5);
 
             const subjectPromises = sampleSubjects.map(id => {
@@ -470,11 +427,11 @@ document.addEventListener('DOMContentLoaded', function () {
                             time: +d["Time (Aeration Data)_[s]"],
                             chest: +d["Chest [mm]"],
                             abd: +d["Abd [mm]"]
-                        })).filter(d => d.time <= 1000); // Limit to 1000 seconds
+                        })).filter(d => d.time <= 1000);
                     })
                     .catch(error => {
                         console.error(`Error loading data for subject ${id}:`, error);
-                        return []; // Return empty data on error
+                        return [];
                     });
             });
 
@@ -487,14 +444,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         Promise.all(groupPromises).then(groupData => {
-            // Create time-binned average data for each group
-            const binSize = 0.1; // 100ms bins
+            const binSize = 0.1;
 
             groupData.forEach(group => {
                 const allData = group.subjectData;
                 if (allData.length === 0) return;
 
-                // Create bins from 0 to 1000 seconds
                 const bins = {};
                 for (let t = 0; t <= 1000; t += binSize) {
                     bins[t.toFixed(1)] = {
@@ -504,7 +459,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     };
                 }
 
-                // Sum up values in each bin
                 allData.forEach(subjectData => {
                     subjectData.forEach(point => {
                         const binKey = (Math.floor(point.time / binSize) * binSize).toFixed(1);
@@ -516,15 +470,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
                 });
 
-                // Calculate averages and create data points
                 averagedGroupData[group.group] = Object.entries(bins)
                     .map(([time, values]) => ({
                         time: parseFloat(time),
                         chest: values.count > 0 ? values.totalChest / values.count : 0,
                         abd: values.count > 0 ? values.totalAbd / values.count : 0
                     }))
-                    .filter(d => d.chest > 0 && d.abd > 0) // Filter out empty bins
-                    .sort((a, b) => a.time - b.time); // Sort by time
+                    .filter(d => d.chest > 0 && d.abd > 0)
+                    .sort((a, b) => a.time - b.time);
             });
 
             console.log("Averaged group data created:", Object.keys(averagedGroupData));
@@ -533,37 +486,29 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Animate individual participant - MODIFIED to use separate scales
     function animateParticipant(subjectId) {
-        // Cancel any existing animation
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
         }
 
-        // Reset animation variables
         currentTime = 0;
 
-        // Show individual legend, hide group legend
+        d3.select("#abdominal-vis")
+            .style("opacity", 1)
+            .style("height", "auto")
+            .style("overflow", null);
+
+        d3.select("#chest-vis")
+            .style("height", "auto")
+            .style("margin-bottom", "40px");
+
         individualLegend.style("opacity", 1);
         groupLegend.style("opacity", 0);
 
-        // Show individual paths, hide group paths
         chestPath.attr("opacity", 1);
         abdPath.attr("opacity", 1);
         chestIndicator.attr("opacity", 1);
         abdIndicator.attr("opacity", 1);
-
-        // Make sure both visualizations are visible
-        d3.select("#chest-vis")
-            .style("opacity", 1)
-            .style("height", "auto")
-            .style("margin-bottom", "40px"); // Add spacing between graphs
-
-        d3.select("#abdominal-vis")
-            .style("opacity", 1)
-            .style("height", "auto");
-
-        d3.select(".section-chest-abdominal h2").text("Chest vs. Abdominal Motion Comparison");
 
         Object.values(groupPaths).forEach(paths => {
             paths.chest.attr("opacity", 0);
@@ -571,10 +516,8 @@ document.addEventListener('DOMContentLoaded', function () {
             paths.ratio.attr("opacity", 0);
         });
 
-        // Show stats
         statsContainer.style("display", "flex");
 
-        // Update subject info display
         svgChest.selectAll(".subject-info").remove();
         const group = subjectGroups[subjectId] || "unknown";
         svgChest.append("text")
@@ -585,69 +528,56 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-size", "14px")
             .style("font-weight", "bold");
 
-        // Load data for the selected subject
         const fileName = `Processed_Dataset/ProcessedData_Subject${String(subjectId).padStart(2, '0')}.csv`;
 
         d3.csv(fileName)
             .then(data => {
-                // Process data - limit to 1000 seconds as specified
                 let processedData = data.map(d => ({
                     time: +d["Time (Aeration Data)_[s]"],
                     chest: +d["Chest [mm]"],
                     abd: +d["Abd [mm]"]
                 })).filter(d => d.time <= 1000);
 
-                // Set up scales for chest with SEPARATE BOUNDS
                 x.domain([0, timeWindow]);
 
-                // Calculate separate extents for chest and abdominal
                 const chestExtent = d3.extent(processedData, d => d.chest);
-                const chestMargin = (chestExtent[1] - chestExtent[0]) * 0.05; // 5% margin
+                const chestMargin = (chestExtent[1] - chestExtent[0]) * 0.1;
                 const chestMin = chestExtent[0] - chestMargin;
                 const chestMax = chestExtent[1] + chestMargin;
 
-                // Calculate separate extents for abdominal
                 const abdExtent = d3.extent(processedData, d => d.abd);
-                const abdMargin = (abdExtent[1] - abdExtent[0]) * 0.05; // 5% margin
+                const abdMargin = (abdExtent[1] - abdExtent[0]) * 0.1;
                 const abdMin = abdExtent[0] - abdMargin;
                 const abdMax = abdExtent[1] + abdMargin;
 
-                // Apply separate scales
                 yChest.domain([chestMin, chestMax]);
                 yAbd.domain([abdMin, abdMax]);
 
-                // Update axes
                 xAxisChest.call(d3.axisBottom(x).ticks(10));
                 yAxisChest.call(d3.axisLeft(yChest).ticks(5));
                 xAxisAbd.call(d3.axisBottom(x).ticks(10));
                 yAxisAbd.call(d3.axisLeft(yAbd).ticks(5));
 
-                // Animation function
                 function animate() {
-                    // Get data for current time window
                     const visibleData = processedData.filter(d =>
                         d.time >= currentTime && d.time <= currentTime + timeWindow
                     );
 
                     if (visibleData.length === 0) {
-                        // Reset to beginning if no data
                         currentTime = 0;
                         animate();
                         return;
                     }
 
-                    // Update lines
                     chestPath.datum(visibleData)
                         .attr("d", chestLine);
 
                     abdPath.datum(visibleData)
                         .attr("d", abdLine);
 
-                    // Update indicators and stats
                     if (visibleData.length > 0) {
                         const latestPoint = visibleData[visibleData.length - 1];
 
-                        // Update indicators
                         chestIndicator
                             .attr("cx", x(latestPoint.time))
                             .attr("cy", yChest(latestPoint.chest));
@@ -656,7 +586,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             .attr("cx", x(latestPoint.time))
                             .attr("cy", yAbd(latestPoint.abd));
 
-                        // Update stats
                         d3.select("#current-chest")
                             .text(`${latestPoint.chest.toFixed(2)} mm`)
                             .style("color", "#7ca1cc");
@@ -671,298 +600,16 @@ document.addEventListener('DOMContentLoaded', function () {
                             .style("color", "#2c3e50");
                     }
 
-                    // Advance time
                     currentTime += 0.02 * animationSpeed;
 
-                    // Update x domain
                     x.domain([currentTime, currentTime + timeWindow]);
 
-                    // Update x-axis
                     xAxisChest.call(d3.axisBottom(x).ticks(10));
                     xAxisAbd.call(d3.axisBottom(x).ticks(10));
 
-                    // Continue animation
                     animationFrameId = requestAnimationFrame(animate);
                 }
 
-                // Start animation
-                animate();
-            })
-            .catch(error => {
-                console.error("Error loading data:", error);
-                d3.select(".section-chest-abdominal")
-                    .append("div")
-                    .attr("class", "error-message")
-                    .style("color", "red")
-                    .style("text-align", "center")
-                    .style("padding", "20px")
-                    .html(`<p>Error loading data for Subject ${subjectId}.</p>
-                           <p>Please make sure the file exists and is correctly formatted.</p>
-                           <p>Technical details: ${error.message}</p>`);
-            });
-    }
-
-    // Animate all groups - MODIFIED to fade out the abdominal graph
-    function animateAllGroups() {
-        // Cancel any existing animation
-        if (animationFrameId) {
-            cancelAnimationFrame(animationFrameId);
-        }
-
-        // Reset animation variables
-        currentTime = 0;
-
-        // Hide individual legend and elements; show group legend and ratio paths
-        individualLegend.style("opacity", 0);
-        groupLegend.style("opacity", 1);
-        chestPath.attr("opacity", 0);
-        abdPath.attr("opacity", 0);
-        chestIndicator.attr("opacity", 0);
-        abdIndicator.attr("opacity", 0);
-
-        // Update section title
-        d3.select(".section-chest-abdominal h2").text("Chest/Abdominal Ratio Comparison Across Groups");
-
-        // FADE OUT the abdominal visualization
-        d3.select("#abdominal-vis")
-            .style("opacity", 0)
-            .style("height", "0px")
-            .style("overflow", "hidden");
-
-        // Increase height of chest viz to take full space - MAKE EVEN LARGER
-        d3.select("#chest-vis")
-            .style("opacity", 1)
-            .style("height", "600px") // Increased from 500px to 600px
-            .style("margin-bottom", "0");
-
-        // Show ratio paths, hide individual lines
-        Object.values(groupPaths).forEach(paths => {
-            paths.chest.attr("opacity", 0);
-            paths.abd.attr("opacity", 0);
-            paths.ratio.attr("opacity", 1); // Show only ratio lines
-        });
-
-        // Hide stats and update info display for ratio comparison
-        statsContainer.style("display", "none");
-        svgChest.selectAll(".subject-info").remove();
-        svgChest.append("text")
-            .attr("class", "subject-info")
-            .attr("x", 10)
-            .attr("y", 20)
-            .text("Group Comparison (Chest/Abd Ratio)")
-            .style("font-size", "14px")
-            .style("font-weight", "bold");
-
-        // Compute combined ratio values across groups
-        let allRatioValues = [];
-        Object.values(averagedGroupData).forEach(groupData => {
-            groupData.forEach(d => {
-                const ratioVal = d.abd !== 0 ? d.chest / d.abd : 0;
-                if (ratioVal > 0) allRatioValues.push(ratioVal);
-            });
-        });
-
-        // Set up scales using ratio values with BETTER MARGINS
-        x.domain([0, timeWindow]);
-
-        // Compute margins dynamically
-        const ratioExtent = d3.extent(allRatioValues);
-        const ratioMargin = (ratioExtent[1] - ratioExtent[0]) * 0.1; // 10% margin
-        const ratioMin = Math.max(0, ratioExtent[0] - ratioMargin); // Don't go below 0
-        const ratioMax = ratioExtent[1] + ratioMargin;
-
-        yRatio.domain([ratioMin, ratioMax]);
-
-        // Update y-axis label for ratio comparison
-        gChest.select(".y-label-chest")
-            .text("Chest/Abd Ratio");
-
-        // Hide the right y-axis label
-        gAbd.select(".y-label-abd")
-            .style("opacity", 0);
-
-        // Update axes (using yAxisChest for ratio)
-        xAxisChest.call(d3.axisBottom(x).ticks(10));
-        yAxisChest.call(d3.axisLeft(yRatio).ticks(5));
-        // Hide the right axis completely
-        yAxisAbd.style("opacity", 0);
-
-        // Animation function for ratio view
-        function animate() {
-            let continueAnimation = false;
-
-            // Update each group's data
-            Object.entries(averagedGroupData).forEach(([group, data]) => {
-                const visibleData = data.filter(d =>
-                    d.time >= currentTime && d.time <= currentTime + timeWindow
-                );
-                if (visibleData.length > 0) {
-                    continueAnimation = true;
-                    // Convert to ratio data
-                    const ratioData = visibleData.map(d => ({
-                        time: d.time,
-                        ratio: d.abd !== 0 ? d.chest / d.abd : 0
-                    }));
-                    groupPaths[group].ratio
-                        .datum(ratioData)
-                        .attr("d", ratioLine);
-                }
-            });
-
-            if (!continueAnimation) {
-                // Reset if all data has been played
-                currentTime = 0;
-                animate();
-                return;
-            }
-
-            // Advance time
-            currentTime += 0.02 * animationSpeed;
-
-            // Update x domain
-            x.domain([currentTime, currentTime + timeWindow]);
-            xAxisChest.call(d3.axisBottom(x).ticks(10));
-
-            // Continue animation
-            animationFrameId = requestAnimationFrame(animate);
-        }
-
-        // Start animation
-        animate();
-    }
-
-    // Modify animateParticipant to show the right y-axis and label when returning from group view
-    function animateParticipant(subjectId) {
-        // Cancel any existing animation
-        if (animationFrameId) {
-            cancelAnimationFrame(animationFrameId);
-        }
-
-        // Reset animation variables
-        currentTime = 0;
-
-        // Show individual legend, hide group legend
-        individualLegend.style("opacity", 1);
-        groupLegend.style("opacity", 0);
-
-        // Show individual paths, hide group paths
-        chestPath.attr("opacity", 1);
-        abdPath.attr("opacity", 1);
-        chestIndicator.attr("opacity", 1);
-        abdIndicator.attr("opacity", 1);
-
-        Object.values(groupPaths).forEach(paths => {
-            paths.chest.attr("opacity", 0);
-            paths.abd.attr("opacity", 0);
-            paths.ratio.attr("opacity", 0);
-        });
-
-        // Show stats
-        statsContainer.style("display", "flex");
-
-        // Update subject info display
-        svgChest.selectAll(".subject-info").remove();
-        const group = subjectGroups[subjectId] || "unknown";
-        svgChest.append("text")
-            .attr("class", "subject-info")
-            .attr("x", 10)
-            .attr("y", 20)
-            .text(`Subject: ${subjectId} (${group})`)
-            .style("font-size", "14px")
-            .style("font-weight", "bold");
-
-        // Load data for the selected subject
-        const fileName = `Processed_Dataset/ProcessedData_Subject${String(subjectId).padStart(2, '0')}.csv`;
-
-        d3.csv(fileName)
-            .then(data => {
-                // Process data - limit to 1000 seconds as specified
-                let processedData = data.map(d => ({
-                    time: +d["Time (Aeration Data)_[s]"],
-                    chest: +d["Chest [mm]"],
-                    abd: +d["Abd [mm]"]
-                })).filter(d => d.time <= 1000);
-
-                // Set up scales
-                x.domain([0, timeWindow]);
-
-                // Find combined min and max for chest and abdominal
-                const combinedMin = Math.min(d3.min(processedData, d => d.chest), d3.min(processedData, d => d.abd)) * 0.999;
-                const combinedMax = Math.max(d3.max(processedData, d => d.chest), d3.max(processedData, d => d.abd)) * 1.001;
-
-                yChest.domain([combinedMin, combinedMax]);
-                yAbd.domain([combinedMin, combinedMax]);
-
-                // Update axes
-                xAxisChest.call(d3.axisBottom(x).ticks(10));
-                yAxisChest.call(d3.axisLeft(yChest).ticks(5));
-                xAxisAbd.call(d3.axisBottom(x).ticks(10));
-                yAxisAbd.call(d3.axisLeft(yAbd).ticks(5));
-
-                // Animation function
-                function animate() {
-                    // Get data for current time window
-                    const visibleData = processedData.filter(d =>
-                        d.time >= currentTime && d.time <= currentTime + timeWindow
-                    );
-
-                    if (visibleData.length === 0) {
-                        // Reset to beginning if no data
-                        currentTime = 0;
-                        animate();
-                        return;
-                    }
-
-                    // Update lines
-                    chestPath.datum(visibleData)
-                        .attr("d", chestLine);
-
-                    abdPath.datum(visibleData)
-                        .attr("d", abdLine);
-
-                    // Update indicators and stats
-                    if (visibleData.length > 0) {
-                        const latestPoint = visibleData[visibleData.length - 1];
-
-                        // Update indicators
-                        chestIndicator
-                            .attr("cx", x(latestPoint.time))
-                            .attr("cy", yChest(latestPoint.chest));
-
-                        abdIndicator
-                            .attr("cx", x(latestPoint.time))
-                            .attr("cy", yAbd(latestPoint.abd));
-
-                        // Update stats
-                        d3.select("#current-chest")
-                            .text(`${latestPoint.chest.toFixed(2)} mm`)
-                            .style("color", "#7ca1cc");
-
-                        d3.select("#current-abd")
-                            .text(`${latestPoint.abd.toFixed(2)} mm`)
-                            .style("color", "#e57a77");
-
-                        const ratio = latestPoint.chest / latestPoint.abd;
-                        d3.select("#current-ratio")
-                            .text(ratio.toFixed(4))
-                            .style("color", "#2c3e50");
-                    }
-
-                    // Advance time
-                    currentTime += 0.02 * animationSpeed;
-
-                    // Update x domain
-                    x.domain([currentTime, currentTime + timeWindow]);
-
-                    // Update x-axis
-                    xAxisChest.call(d3.axisBottom(x).ticks(10));
-                    xAxisAbd.call(d3.axisBottom(x).ticks(10));
-
-                    // Continue animation
-                    animationFrameId = requestAnimationFrame(animate);
-                }
-
-                // Start animation
                 animate();
             })
             .catch(error => {
@@ -978,11 +625,114 @@ document.addEventListener('DOMContentLoaded', function () {
                            <p>Technical details: ${error.message}</p>`);
             });
 
-        // Restore the right y-axis and its label
         yAxisAbd.style("opacity", 1);
         gAbd.select(".y-label-abd").style("opacity", 1);
 
-        // Restore the left y-axis label
         gChest.select(".y-label-chest").text("Chest Circumference (mm)");
+    }
+
+    function animateAllGroups() {
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+        }
+
+        currentTime = 0;
+
+        individualLegend.style("opacity", 0);
+        groupLegend.style("opacity", 1);
+        chestPath.attr("opacity", 0);
+        abdPath.attr("opacity", 0);
+        chestIndicator.attr("opacity", 0);
+        abdIndicator.attr("opacity", 0);
+
+        d3.select(".section-chest-abdominal h2").text("Chest/Abdominal Ratio Comparison Across Groups");
+
+        d3.select("#abdominal-vis")
+            .style("opacity", 0)
+            .style("height", "0px")
+            .style("overflow", "hidden");
+
+        d3.select("#chest-vis")
+            .style("opacity", 1)
+            .style("height", "600px")
+            .style("margin-bottom", "0");
+
+        Object.values(groupPaths).forEach(paths => {
+            paths.chest.attr("opacity", 0);
+            paths.abd.attr("opacity", 0);
+            paths.ratio.attr("opacity", 1);
+        });
+
+        statsContainer.style("display", "none");
+        svgChest.selectAll(".subject-info").remove();
+        svgChest.append("text")
+            .attr("class", "subject-info")
+            .attr("x", 10)
+            .attr("y", 20)
+            .text("Group Comparison (Chest/Abd Ratio)")
+            .style("font-size", "14px")
+            .style("font-weight", "bold");
+
+        let allRatioValues = [];
+        Object.values(averagedGroupData).forEach(groupData => {
+            groupData.forEach(d => {
+                const ratioVal = d.abd !== 0 ? d.chest / d.abd : 0;
+                if (ratioVal > 0) allRatioValues.push(ratioVal);
+            });
+        });
+
+        x.domain([0, timeWindow]);
+
+        const ratioExtent = d3.extent(allRatioValues);
+        const ratioMargin = (ratioExtent[1] - ratioExtent[0]) * 0.1;
+        const ratioMin = Math.max(0, ratioExtent[0] - ratioMargin);
+        const ratioMax = ratioExtent[1] + ratioMargin;
+
+        yRatio.domain([ratioMin, ratioMax]);
+
+        gChest.select(".y-label-chest")
+            .text("Chest/Abd Ratio");
+
+        gAbd.select(".y-label-abd")
+            .style("opacity", 0);
+
+        xAxisChest.call(d3.axisBottom(x).ticks(10));
+        yAxisChest.call(d3.axisLeft(yRatio).ticks(5));
+        yAxisAbd.style("opacity", 0);
+
+        function animate() {
+            let continueAnimation = false;
+
+            Object.entries(averagedGroupData).forEach(([group, data]) => {
+                const visibleData = data.filter(d =>
+                    d.time >= currentTime && d.time <= currentTime + timeWindow
+                );
+                if (visibleData.length > 0) {
+                    continueAnimation = true;
+                    const ratioData = visibleData.map(d => ({
+                        time: d.time,
+                        ratio: d.abd !== 0 ? d.chest / d.abd : 0
+                    }));
+                    groupPaths[group].ratio
+                        .datum(ratioData)
+                        .attr("d", ratioLine);
+                }
+            });
+
+            if (!continueAnimation) {
+                currentTime = 0;
+                animate();
+                return;
+            }
+
+            currentTime += 0.02 * animationSpeed;
+
+            x.domain([currentTime, currentTime + timeWindow]);
+            xAxisChest.call(d3.axisBottom(x).ticks(10));
+
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        animate();
     }
 });
