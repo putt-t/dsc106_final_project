@@ -237,11 +237,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 Object.keys(groupColors).forEach(group => {
                     dataGroup = groupData.filter(d => d.group === group);
                     averagedGroupData[group] = dataGroup.map(d => ({
-                        time: +d["Time [s]"],
-                        flow: +d["Flow [L/s]"],
-                        volume: +d["V_tidal [L]"],
-                        chest: +d["Chest [mm]"],
-                        abdomen: +d["Abd [mm]"],
+                        time: +d["Time [s]"] > 0 ? +d["Time [s]"] : 0,
+                        flow: +d["Flow [L/s]"] > 0 ? +d["Flow [L/s]"] : 0,
+                        volume: +d["V_tidal [L]"] > 0 ? +d["V_tidal [L]"] : 0,
+                        chest: +d["Chest [mm]"] > 0 ? +d["Chest [mm]"] : 0,
+                        abdomen: +d["Abd [mm]"] > 0 ? +d["Abd [mm]"] : 0,
                         ratio: +d["Chest [mm]"] / +d["Abd [mm]"]
                     }));
 
