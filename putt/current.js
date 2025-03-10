@@ -5,13 +5,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const innerWidth = width - margin.left - margin.right;
 
     const groupColors = {
-        healthy: '#6c90b0',
+        normal: '#6c90b0',
         asthma: '#e57a77',
         smoker: "#9b59b6",
         vaper: "#f1c40f"
     };
 
-    const averagedGroupData = {};
+    let averagedGroupData = {};
     const timeWindow = 10;
     let currentTime = 0;
     let animationSpeed = 1;
@@ -181,17 +181,17 @@ document.addEventListener('DOMContentLoaded', function () {
     const chestLine = d3.line()
         .x(d => x(d.time))
         .y(d => yChest(d.chest))
-        .curve(d3.curveBasis);
+        .curve(d3.curveLinear);
 
     const abdLine = d3.line()
         .x(d => x(d.time))
         .y(d => yAbd(d.abd))
-        .curve(d3.curveBasis);
+        .curve(d3.curveLinear);
 
     const ratioLine = d3.line()
         .x(d => x(d.time))
         .y(d => yRatio(d.ratio))
-        .curve(d3.curveBasis);
+        .curve(d3.curveLinear);
 
     const chestPath = gChest.append("path")
         .attr("class", "chest-line")
@@ -371,7 +371,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 let group;
                 if (classification.includes("Normal")) {
-                    group = "healthy";
+                    group = "normal";
                 } else if (classification.includes("Asthmatic")) {
                     group = "asthma";
                 } else if (classification.includes("Smoker")) {
@@ -386,6 +386,8 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             populateParticipantSelect();
+
+            computeGroupAverages();
         })
         .catch(error => {
             console.error("Error loading subject info:", error);
@@ -446,93 +448,37 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function computeGroupAverages() {
-        return new Promise((resolve, reject) => {
-            try {
-                const subjectsByGroup = {};
-                Object.keys(groupColors).forEach(group => {
-                    subjectsByGroup[group] = [];
-                    for (let id in subjectGroups) {
-                        if (subjectGroups[id] === group) {
-                            subjectsByGroup[group].push(parseInt(id, 10));
-                        }
-                    }
-                });
+        // Load average data for all groups
+        d3.csv("grouped_data.csv").then(groupData => {
+            Object.keys(groupColors).forEach(group => {
+                dataGroup = groupData.filter(d => d.group === group);
+                averagedGroupData[group] = dataGroup.map(d => ({
+                    time: +d["Time [s]"],
+                    flow: +d["Flow [L/s]"],
+                    volume: +d["V_tidal [L]"],
+                    chest: +d["Chest [mm]"],
+                    abdomen: +d["Abd [mm]"],
+                    ratio: +d["Chest [mm]"] / +d["Abd [mm]"]
+                }));
 
-                const groupPromises = Object.entries(subjectsByGroup).map(([group, subjectIds]) => {
-                    const sampleSubjects = subjectIds.slice(0, 5);
+                // sort by time
+                averagedGroupData[group] = averagedGroupData[group].sort((a, b) => a.time - b.time);
 
-            const subjectPromises = sampleSubjects.map(id => {
-                const fileName = `Processed_Dataset/ProcessedData_Subject${String(id).padStart(2, '0')}.csv`;
-                return d3.csv(fileName)
-                    .then(data => {
-                        return data.map(d => ({
-                            time: +d["Time (Aeration Data)_[s]"],
-                            chest: +d["Chest [mm]"],
-                            abd: +d["Abd [mm]"]
-                        })).filter(d => d.time <= 300);
-                    })
-                    .catch(error => {
-                        console.error(`Error loading data for subject ${id}:`, error);
-                        return [];
-                    });
+                // filter out data > 300 seconds
+                averagedGroupData[group] = averagedGroupData[group].filter(d => d.time >= 0 && d.time <= 300);
             });
-
-                    return Promise.all(subjectPromises).then(allSubjectData => {
-                        return {
-                            group: group,
-                            subjectData: allSubjectData
-                        };
-                    });
-                });
-
-                Promise.all(groupPromises).then(groupData => {
-                    const binSize = 0.1;
-
-                    groupData.forEach(group => {
-                        const allData = group.subjectData;
-                        if (allData.length === 0) return;
-
-                const bins = {};
-                for (let t = 0; t <= 300; t += binSize) {
-                    bins[t.toFixed(1)] = {
-                        count: 0,
-                        totalChest: 0,
-                        totalAbd: 0
-                    };
-                }
-
-                        allData.forEach(subjectData => {
-                            subjectData.forEach(point => {
-                                const binKey = (Math.floor(point.time / binSize) * binSize).toFixed(1);
-                                if (bins[binKey]) {
-                                    bins[binKey].count++;
-                                    bins[binKey].totalChest += point.chest;
-                                    bins[binKey].totalAbd += point.abd;
-                                }
-                            });
-                        });
-
-                        averagedGroupData[group.group] = Object.entries(bins)
-                            .map(([time, values]) => ({
-                                time: parseFloat(time),
-                                chest: values.count > 0 ? values.totalChest / values.count : 0,
-                                abd: values.count > 0 ? values.totalAbd / values.count : 0
-                            }))
-                            .filter(d => d.chest > 0 && d.abd > 0)
-                            .sort((a, b) => a.time - b.time);
-                    });
-
-                    console.log("Averaged group data created:", Object.keys(averagedGroupData));
-                    resolve();
-                }).catch(error => {
-                    console.error("Error computing group averages:", error);
-                    reject(error);
-                });
-            } catch (error) {
-                reject(error);
+            console.log(averagedGroupData)
+            // Trigger initial animation for comparison if "all" is selected
+            if (selectedParticipant === "all") {
+                animateAllGroups();
             }
-        });
+        })
+            .catch(error => {
+                console.error("Error loading grouped data:", error);
+                alert("Failed to load group comparison data. See console for details.");
+            });
     }
+
 
     function animateParticipant(subjectId) {
         if (animationFrameId) {
@@ -577,7 +523,6 @@ document.addEventListener('DOMContentLoaded', function () {
             .style("font-weight", "bold");
 
         const fileName = `Processed_Dataset/ProcessedData_Subject${String(subjectId).padStart(2, '0')}.csv`;
-
         d3.csv(fileName)
             .then(data => {
                 let processedData = data.map(d => ({
@@ -625,7 +570,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     if (visibleData.length > 0) {
                         const latestPoint = visibleData[visibleData.length - 1];
-
                         chestIndicator
                             .attr("cx", x(latestPoint.time))
                             .attr("cy", yChest(latestPoint.chest));
@@ -649,7 +593,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
 
                     currentTime += 0.02 * animationSpeed;
-
                     x.domain([currentTime, currentTime + timeWindow]);
 
                     xAxisChest.call(d3.axisBottom(x).ticks(10));
@@ -672,18 +615,12 @@ document.addEventListener('DOMContentLoaded', function () {
                            <p>Please make sure the file exists and is correctly formatted.</p>
                            <p>Technical details: ${error.message}</p>`);
             });
-
-        yAxisAbd.style("opacity", 1);
-        gAbd.select(".y-label-abd").style("opacity", 1);
-
-        gChest.select(".y-label-chest").text("Chest Circumference (mm)");
     }
 
     function showIndividualViz() {
         d3.select("#chest-vis").style("display", "block");
         d3.select("#abdominal-vis").style("display", "block");
         comparisonContainer.style("display", "none");
-
         statsContainer.style("display", "flex");
         d3.select("#current-chest").style("display", "block");
         d3.select("#current-abd").style("display", "block");
@@ -693,6 +630,9 @@ document.addEventListener('DOMContentLoaded', function () {
         abdStat.select("h3").text("Abdominal Circumference");
         ratioStat.select("h3").text("Chest/Abd Ratio");
 
+        gAbd.select(".y-label-abd").style("opacity", 1);
+        gChest.select(".y-label-chest").text("Chest Circumference (mm)");
+
         groupStatsContainer.style("display", "none");
     }
 
@@ -700,7 +640,6 @@ document.addEventListener('DOMContentLoaded', function () {
         d3.select("#chest-vis").style("display", "none");
         d3.select("#abdominal-vis").style("display", "none");
         comparisonContainer.style("display", "block");
-
         statsContainer.style("display", "none");
         groupStatsContainer.style("display", "flex");
     }
@@ -714,226 +653,195 @@ document.addEventListener('DOMContentLoaded', function () {
 
         svgComparison.selectAll("*").remove();
 
-        // Remove any existing loading indicators
-        svgComparison.selectAll(".loading-indicator").remove();
+        const gComparison = svgComparison.append("g")
+            .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-        // Create a loading spinner group
-        const spinner = svgComparison.append("g")
-            .attr("class", "loading-indicator")
-            .attr("transform", `translate(${width/2}, ${height/3})`);
-
-        // Add spinner circle
-        spinner.append("circle")
-            .attr("r", 20)
-            .attr("fill", "none")
-            .attr("stroke-width", 4)
-            .attr("stroke", "#7ca1cc") 
-            .attr("stroke-dasharray", "80, 125")
-            .attr("stroke-linecap", "round")
-            .call(selection => {
-                // Add rotation animation
-                function rotateSpinner() {
-                    selection.transition()
-                        .duration(1000)
-                        .ease(d3.easeLinear)
-                        .attrTween("transform", () => t => `rotate(${360 * t})`)
-                        .on("end", rotateSpinner);
-                }
-                rotateSpinner();
-            });
-
-        // Add loading text below the spinner
-        spinner.append("text")
-            .attr("y", 40)
+        svgComparison.append("text")
+            .attr("class", "viz-title")
+            .attr("x", width / 2)
+            .attr("y", 25)
             .attr("text-anchor", "middle")
-            .style("font-size", "16px")
-            .text("Computing group averages...")
-            .call(selection => {
-                // Add pulsing animation
-                function pulseText() {
-                    selection.transition()
-                        .duration(800)
-                        .ease(d3.easeSinInOut)
-                        .style("opacity", 0.5)
-                        .transition()
-                        .duration(800)
-                        .ease(d3.easeSinInOut)
-                        .style("opacity", 1)
-                        .on("end", pulseText);
-                }
-                pulseText();
-            });
+            .text("Chest/Abdominal Ratio Comparison Across Groups");
 
-        // Check if we have already computed the averages
-        const hasAveragedData = Object.keys(averagedGroupData).length > 0 && 
-                               Object.values(averagedGroupData).some(data => data && data.length > 0);
-
-        // If we don't have data yet, compute it now
-        if (!hasAveragedData) {
-            computeGroupAverages().then(() => {
-                // Remove loading spinner with a fade out effect
-                spinner.transition()
-                    .duration(300)
-                    .style("opacity", 0)
-                    .on("end", function() {
-                        d3.select(this).remove();
-                        // Set up and start the visualization
-                        setupComparisonVisualization();
-                    });
-            }).catch(error => {
-                // Update spinner to show error
-                spinner.select("circle").remove();
-                spinner.select("text")
-                    .text("Error loading group data: " + error.message)
-                    .attr("y", 0)
-                    .style("fill", "#e57a77")
-                    .style("opacity", 1);
-                console.error("Error computing group averages:", error);
-            });
-        } else {
-            // We already have the data, proceed immediately
-            spinner.remove();
-            setupComparisonVisualization();
+        // Check if we have any data
+        let hasData = false;
+        for (const group in averagedGroupData) {
+            if (averagedGroupData[group].length > 0) {
+                hasData = true;
+                break;
+            }
         }
 
-        // Define a function to set up the visualization after data is ready
-        function setupComparisonVisualization() {
-            const gComparison = svgComparison.append("g")
-                .attr("transform", `translate(${margin.left}, ${margin.top})`);
-
-            svgComparison.append("text")
-                .attr("class", "viz-title")
-                .attr("x", width / 2)
-                .attr("y", 25)
-                .attr("text-anchor", "middle")
-                .text("Chest/Abdominal Ratio Comparison Across Groups");
-
-            // Create paths for each group (existing code)
-            const comparisonPaths = {};
-            Object.keys(groupColors).forEach(group => {
-                comparisonPaths[group] = gComparison.append("path")
-                    .attr("class", `ratio-line ${group}-ratio-line`)
-                    .attr("fill", "none")
-                    .attr("stroke", groupColors[group])
-                    .attr("stroke-width", 3);
-            });
-
-            // The rest of your visualization setup (axes, labels, legends)
-            const xAxis = gComparison.append("g")
-                .attr("class", "x-axis")
-                .attr("transform", `translate(0, ${innerGraphHeight})`);
-
-            const yAxis = gComparison.append("g")
-                .attr("class", "y-axis");
-
+        if (!hasData) {
             gComparison.append("text")
-                .attr("class", "x-label")
                 .attr("x", innerWidth / 2)
-                .attr("y", innerGraphHeight + 40)
+                .attr("y", innerGraphHeight / 2)
                 .attr("text-anchor", "middle")
-                .text("Time (s)");
+                .attr("font-size", "16px")
+                .attr("fill", "red")
+                .text("No data available for comparison. Check console for details.");
+            console.error("No data available in averagedGroupData:", averagedGroupData);
+            return;
+        }
 
-            gComparison.append("text")
-                .attr("class", "y-label")
-                .attr("transform", "rotate(-90)")
-                .attr("x", -innerGraphHeight / 2)
-                .attr("y", -60)
-                .attr("text-anchor", "middle")
-                .text("Chest/Abd Ratio");
+        const comparisonPaths = {};
+        Object.keys(groupColors).forEach(group => {
+            comparisonPaths[group] = gComparison.append("path")
+                .attr("class", `ratio-line ${group}-ratio-line`)
+                .attr("fill", "none")
+                .attr("stroke", groupColors[group])
+                .attr("stroke-width", 3);
+        });
 
-            const comparisonLegend = svgComparison.append("g")
-                .attr("class", "legend group-legend")
-                .attr("transform", `translate(${width - margin.right + 20}, ${margin.top + 20})`);
+        const xAxis = gComparison.append("g")
+            .attr("class", "x-axis")
+            .attr("transform", `translate(0, ${innerGraphHeight})`);
 
-            let legendY = 0;
-            Object.entries(groupColors).forEach(([group, color]) => {
-                comparisonLegend.append("line")
-                    .attr("x1", 0)
-                    .attr("y1", legendY + 7.5)
-                    .attr("x2", 15)
-                    .attr("y2", legendY + 7.5)
-                    .attr("stroke", color)
-                    .attr("stroke-width", 3);
+        const yAxis = gComparison.append("g")
+            .attr("class", "y-axis");
 
-                let displayName = group.charAt(0).toUpperCase() + group.slice(1);
-                comparisonLegend.append("text")
-                    .attr("x", 25)
-                    .attr("y", legendY + 12.5)
-                    .text(displayName)
-                    .style("font-size", "14px");
+        gComparison.append("text")
+            .attr("class", "x-label")
+            .attr("x", innerWidth / 2)
+            .attr("y", innerGraphHeight + 40)
+            .attr("text-anchor", "middle")
+            .text("Time (s)");
 
-                legendY += 25;
-            });
+        gComparison.append("text")
+            .attr("class", "y-label")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -innerGraphHeight / 2)
+            .attr("y", -60)
+            .attr("text-anchor", "middle")
+            .text("Chest/Abd Ratio");
 
-            // Calculate ratio values for all groups
-            let allRatioValues = [];
-            Object.values(averagedGroupData).forEach(groupData => {
+        const comparisonLegend = svgComparison.append("g")
+            .attr("class", "legend group-legend")
+            .attr("transform", `translate(${width - margin.right + 20}, ${margin.top + 20})`);
+
+        let legendY = 0;
+        Object.entries(groupColors).forEach(([group, color]) => {
+            comparisonLegend.append("line")
+                .attr("x1", 0)
+                .attr("y1", legendY + 7.5)
+                .attr("x2", 15)
+                .attr("y2", legendY + 7.5)
+                .attr("stroke", color)
+                .attr("stroke-width", 3);
+
+            let displayName = group.charAt(0).toUpperCase() + group.slice(1);
+            comparisonLegend.append("text")
+                .attr("x", 25)
+                .attr("y", legendY + 12.5)
+                .text(displayName)
+                .style("font-size", "14px");
+
+            legendY += 25;
+        });
+
+        // Collect all ratio values to set proper y scale domain
+        let allRatioValues = [];
+        let maxTime = 0;
+
+        Object.values(averagedGroupData).forEach(groupData => {
+            if (groupData.length > 0) {
                 groupData.forEach(d => {
-                    const ratioVal = d.abd !== 0 ? d.chest / d.abd : 0;
-                    if (ratioVal > 0) allRatioValues.push(ratioVal);
+                    if (d.ratio && !isNaN(d.ratio) && isFinite(d.ratio)) {
+                        allRatioValues.push(d.ratio);
+                    }
+                    if (d.time > maxTime) {
+                        maxTime = d.time;
+                    }
                 });
+            }
+        });
+
+        if (allRatioValues.length === 0) {
+            gComparison.append("text")
+                .attr("x", innerWidth / 2)
+                .attr("y", innerGraphHeight / 2)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "16px")
+                .attr("fill", "red")
+                .text("No valid ratio values found in the data.");
+            return;
+        }
+
+        // Improve curve interpolation for smoother lines
+
+        const smoothRatioLine = d3.line()
+            .x(d => x(d.time))
+            .y(d => yRatio(d.ratio))
+            .curve(d3.curveLinear); // Better curve interpolation
+
+        // Set x domain based on data with more appropriate time window
+        const effectiveTimeWindow = Math.min(20, maxTime); // Use wider window for smoother visualization
+        x.domain([0, effectiveTimeWindow]);
+
+        // Set y domain based on the ratio values
+        const ratioExtent = d3.extent(allRatioValues);
+        const ratioMargin = (ratioExtent[1] - ratioExtent[0]) * 0.2; // Increase margin
+        yRatio.domain([
+            Math.max(0, ratioExtent[0] - ratioMargin),
+            ratioExtent[1] + ratioMargin
+        ]);
+
+        function animate() {
+            let continueAnimation = false;
+
+            Object.entries(averagedGroupData).forEach(([group, data]) => {
+                if (!data || data.length === 0) return;
+
+                // Get visible data within the current time window
+                const visibleData = data.filter(d =>
+                    d.time >= currentTime &&
+                    d.time <= currentTime + effectiveTimeWindow &&
+                    !isNaN(d.ratio) &&
+                    isFinite(d.ratio)
+                );
+
+                if (visibleData.length > 0) {
+                    continueAnimation = true;
+
+                    comparisonPaths[group]
+                        .datum(visibleData)
+                        .attr("d", smoothRatioLine); // Use the smoother line function
+
+                    // Update the ratio display
+                    const latestPoint = visibleData[visibleData.length - 1];
+                    if (latestPoint && latestPoint.ratio && !isNaN(latestPoint.ratio)) {
+                        d3.select(`#${group}-ratio`)
+                            .text(latestPoint.ratio.toFixed(4));
+                    }
+                }
             });
 
-            // Set up scales and axes
-            x.domain([0, timeWindow]);
+            if (!continueAnimation) {
+                if (currentTime >= maxTime) {
+                    currentTime = 0;
+                } else {
+                    currentTime += effectiveTimeWindow / 2;
+                }
+                animate();
+                return;
+            }
 
-            const ratioExtent = d3.extent(allRatioValues);
-            const ratioMargin = (ratioExtent[1] - ratioExtent[0]) * 0.1;
-            yRatio.domain([
-                Math.max(0, ratioExtent[0] - ratioMargin),
-                ratioExtent[1] + ratioMargin
-            ]);
-
+            currentTime += 0.02 * animationSpeed;
+            x.domain([currentTime, currentTime + effectiveTimeWindow]);
             xAxis.call(d3.axisBottom(x).ticks(10));
             yAxis.call(d3.axisLeft(yRatio).ticks(5));
 
-            // Start the animation
-            animate();
-
-            // Animation function
-            function animate() {
-                let continueAnimation = false;
-
-                Object.entries(averagedGroupData).forEach(([group, data]) => {
-                    if (!data || data.length === 0) return;
-                    
-                    const visibleData = data.filter(d =>
-                        d.time >= currentTime && d.time <= currentTime + timeWindow
-                    );
-
-                    if (visibleData.length > 0) {
-                        continueAnimation = true;
-                        const ratioData = visibleData.map(d => ({
-                            time: d.time,
-                            ratio: d.abd !== 0 ? d.chest / d.abd : 0
-                        }));
-
-                        comparisonPaths[group]
-                            .datum(ratioData)
-                            .attr("d", ratioLine);
-
-                        const latestPoint = visibleData[visibleData.length - 1];
-                        const ratio = latestPoint.chest / latestPoint.abd;
-                        d3.select(`#${group}-ratio`)
-                            .text(ratio.toFixed(4));
-                    }
-                });
-
-                if (!continueAnimation) {
-                    currentTime = 0;
-                    // Use requestAnimationFrame instead of direct recursion
-                    animationFrameId = requestAnimationFrame(animate);
-                    return;
-                }
-
-                currentTime += 0.02 * animationSpeed;
-                x.domain([currentTime, currentTime + timeWindow]);
-                xAxis.call(d3.axisBottom(x).ticks(10));
-                yAxis.call(d3.axisLeft(yRatio).ticks(5));
-
-                animationFrameId = requestAnimationFrame(animate);
-            }
+            animationFrameId = requestAnimationFrame(animate);
         }
+
+        xAxis.call(d3.axisBottom(x).ticks(10));
+        yAxis.call(d3.axisLeft(yRatio).ticks(5));
+
+        console.log("Starting animation with data:",
+            Object.keys(averagedGroupData).map(g =>
+                `${g}: ${averagedGroupData[g].length} points`).join(", "));
+
+        animate();
     }
 
     showIndividualViz();
